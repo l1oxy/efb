@@ -128,7 +128,7 @@ a{color:var(--c)}
 .gs.call.mine .bubble{border-color:var(--g)}
 .gs.cl .gi{margin-bottom:12px}
 .gs.funk .gi{font-size:20px;margin:12px 0}
-.gnav{justify-content:space-between;margin:4px 0 12px}.gnav .btn.big{flex:1;min-height:60px;font-size:18px}
+.gnav{justify-content:space-between;margin:4px 0 12px}.gnav .btn.gbig{flex:1;min-height:60px;font-size:18px}
 .btn[disabled]{opacity:.4}
 .glist{margin:0;padding-left:26px;font-size:14px;color:var(--ink)}
 .glist li{padding:6px 2px;border-top:1px dashed var(--line);cursor:pointer}
@@ -1102,7 +1102,7 @@ function renderGuided(){
   h+=`<div class="card gcur">${st?stepView(st,true):'<p class="empty">Keine Schritte (Detailstufe).</p>'}</div>`;
   const atEnd=S.g.i>=list.length-1;
   h+=`<div class="row gnav"><button class="btn ghost" id="gBack" ${S.g.i===0?'disabled':''}>Zurück</button>`+
-     (atEnd?`<button class="btn big" id="gPhase">${nextIdx>=0?'Phase fertig → '+esc(FLOWS[nextIdx].n):'Flug beendet ✓'}</button>`:`<button class="btn big" id="gNext">Erledigt</button>`)+`</div>`;
+     (atEnd?`<button class="btn gbig" id="gPhase">${nextIdx>=0?'Phase fertig → '+esc(FLOWS[nextIdx].n):'Flug beendet ✓'}</button>`:`<button class="btn gbig" id="gNext">Erledigt</button>`)+`</div>`;
   if(['final','land'].includes(ph.id))h+=`<div class="row" style="margin-top:8px"><button class="btn warn" id="gGA">Go Around</button></div>`;
   h+=`<div class="card"><h3>Alle Schritte dieser Phase</h3><ol class="glist">${list.map((s,i)=>`<li data-gi="${i}" class="${i<S.g.i?'done':i===S.g.i?'cur':''}">${esc(shortTxt(s))}</li>`).join('')}</ol></div>`;
   $('#ckBody').innerHTML=h;
