@@ -8,7 +8,6 @@
 <title>EFB · Bordcomputer</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
 /* VOICE: ruhig, präzise, Cockpit bei Nacht
    IDEA: die Papier-Checkliste im Cockpit – Schalter links, Pünktchen, Stellung rechts
@@ -100,9 +99,6 @@ a{color:var(--c)}
 .stn .role{width:56px;color:var(--dim);font-size:11px;flex:none}
 .stn .who{flex:1;font:13px "B612 Mono",monospace}
 .stn .fq{font:700 17px "B612 Mono",monospace;color:var(--g)}
-#map{height:min(58vh,540px);border-radius:12px;border:1px solid var(--line);background:#0d1622}
-.leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.6)}
-.leaflet-container{font-family:"B612",sans-serif;background:#0d1622}
 .wplbl{background:none;border:0;box-shadow:none;color:var(--c);font:11px "B612 Mono",monospace;padding:0}
 .wplbl::before{display:none}
 .met .raw{font:12px "B612 Mono",monospace;color:var(--dim);word-break:break-word}
@@ -157,13 +153,6 @@ select{appearance:auto}
   <div id="ckBody"></div>
 </section>
 
-<!-- KARTE -->
-<section class="tab" id="t-karte">
-  <h2>Route</h2>
-  <div id="map"></div>
-  <div class="card" style="margin-top:12px"><h3>Online auf deiner Strecke</h3><div id="onlineList" class="empty">Noch keine VATSIM-Daten.</div></div>
-</section>
-
 <!-- EINSTELLUNGEN -->
 <section class="tab" id="t-set">
   <h2>Einstellungen</h2>
@@ -172,8 +161,9 @@ select{appearance:auto}
 
 <!-- INFO -->
 <section class="tab" id="t-info">
-  <h2>Wetter</h2>
+  <h2>Wetter &amp; Lotsen</h2>
   <div class="two" id="infoBody"></div>
+  <div class="card"><h3>Online an Abflug &amp; Ziel</h3><div id="onlineList" class="empty">Noch keine VATSIM-Daten.</div></div>
   <div class="card"><h3>Karten</h3><a href="https://charts.navigraph.com/" target="_blank" rel="noopener" class="btn ghost" style="display:inline-block;text-decoration:none">Navigraph Charts öffnen</a></div>
 </section>
 </main>
@@ -184,7 +174,6 @@ select{appearance:auto}
   <button data-t="flug"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 16l20-6-20-6 4 6-4 6z"/></svg>Flug</button>
   <button data-t="funk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="7" y="7" width="10" height="15" rx="2"/><path d="M12 7V2M10 12h4M10 16h4"/></svg>Funk</button>
   <button data-t="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 6h11M9 12h11M9 18h11M3 6l1.5 1.5L7 5M3 12l1.5 1.5L7 11M3 18l1.5 1.5L7 17"/></svg>Checklisten</button>
-  <button data-t="karte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg>Karte</button>
   <button data-t="info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 15a4 4 0 014-4 5 5 0 019.6 1.5A3.5 3.5 0 1117 19H8a4 4 0 01-4-4z"/></svg>Wetter</button>
 </nav>
 
@@ -197,7 +186,6 @@ select{appearance:auto}
   </div>
 </div></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 {
 /* ---------- Grundlagen ---------- */
@@ -250,7 +238,7 @@ async function pullVatsim(){
   try{const r=await fetch('https://data.vatsim.net/v3/vatsim-data.json',{cache:'no-store'});const j=await r.json();
     V.ctl=(j.controllers||[]).filter(c=>c.facility>0&&c.frequency!=='199.998');V.atis=j.atis||[];V.t=new Date();V.err=false;
   }catch(e){V.err=true}
-  head();if(S.tab==='funk')renderFunk();if(S.tab==='karte')renderOnline();if(S.tab==='info')renderInfo();
+  head();if(S.tab==='funk')renderFunk();if(S.tab==='info'){renderInfo();renderOnline()}
 }
 const pre=c=>c.callsign.split('_')[0];
 /* Wer deckt eine Rolle an einem Platz ab (VATSIM top-down) */
@@ -1083,20 +1071,6 @@ $('#t-set').addEventListener('click',e=>{
   if(e.target.closest('#setNew')){ask('Neuer Flug? Tippe JA','',['JA'],0,v=>{if(v==='JA'){S.f=blank();S.ck={};S.x={};S.g={p:0,c:0,done:{}};S.phase='boden';S.req=null;save();tab('flug')}})}
 });
 $('#hSet').onclick=()=>tab('set');
-/* ---------- Karte ---------- */
-let MAP=null,LAY=null;
-function renderMap(){
-  if(typeof L==='undefined'){$('#map').innerHTML='<p class="empty" style="padding:16px">Karte konnte nicht geladen werden.</p>';return}
-  if(!MAP){MAP=L.map('map',{zoomControl:true,attributionControl:true});
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:12,attribution:'© OpenStreetMap'}).addTo(MAP)}
-  if(LAY)LAY.remove();LAY=L.layerGroup().addTo(MAP);
-  const f=F();const pts=[];if(f.depPos)pts.push(f.depPos);f.wps.forEach(w=>pts.push([w[0],w[1]]));if(f.arrPos)pts.push(f.arrPos);
-  if(pts.length<2){MAP.setView([51,10],5);setTimeout(()=>MAP.invalidateSize(),50);return}
-  L.polyline(pts,{color:'#ff3cf0',weight:3}).addTo(LAY);
-  f.wps.forEach(w=>L.circleMarker([w[0],w[1]],{radius:3,color:'#3cc8ff',weight:1,fillOpacity:1}).bindTooltip(w[2],{permanent:f.wps.length<40,direction:'right',className:'wplbl'}).addTo(LAY));
-  [[f.depPos,f.dep],[f.arrPos,f.arr]].forEach(([p,n])=>p&&L.circleMarker(p,{radius:7,color:'#3fe08a',weight:2,fillOpacity:.3}).bindTooltip(n,{permanent:true,direction:'top',className:'wplbl'}).addTo(LAY));
-  setTimeout(()=>{MAP.invalidateSize();MAP.fitBounds(L.latLngBounds(pts),{padding:[30,30]})},60);
-}
 function renderOnline(){
   const f=F();if(!V.t){$('#onlineList').textContent=V.err?'VATSIM nicht erreichbar.':'Noch keine VATSIM-Daten.';return}
   const keys=[f.dep,f.arr].filter(Boolean).map(s=>s.toUpperCase());
@@ -1135,7 +1109,7 @@ function head(){
 }
 function tab(t){
   S.tab=t;save();$$('section.tab').forEach(s=>s.classList.toggle('act',s.id==='t-'+t));$$('nav button').forEach(b=>b.classList.toggle('act',b.dataset.t===t));
-  if(t==='funk')renderFunk();if(t==='check')renderCheck();if(t==='karte'){renderMap();renderOnline()}if(t==='info')renderInfo();if(t==='flug')renderForm();if(t==='set')renderSet();
+  if(t==='funk')renderFunk();if(t==='check')renderCheck();if(t==='info'){renderInfo();renderOnline()}if(t==='flug')renderForm();if(t==='set')renderSet();
   $('#hSet').classList.toggle('act',t==='set');window.scrollTo(0,0);
 }
 function renderAll(){head();tab(S.tab)}
@@ -1187,6 +1161,7 @@ function quick(q){
 }
 
 /* ---------- Start ---------- */
+if(S.tab==='karte')S.tab='funk';
 if(!F().dep&&S.tab!=='flug')S.tab='flug';
 renderAll();
 pullVatsim();setInterval(pullVatsim,60000);
