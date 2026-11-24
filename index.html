@@ -109,6 +109,31 @@ details.ck summary{list-style:none;cursor:pointer}details.ck summary::-webkit-de
 .modal .box h3{color:var(--ink);font-size:18px}
 .empty{color:var(--dim);font-size:15px}
 a{color:var(--c)}
+
+.gear{background:none;border:0;color:var(--dim);padding:6px;min-width:40px;min-height:40px;display:flex;align-items:center;justify-content:center}
+.gear svg{width:22px;height:22px}.gear.act{color:var(--c)}
+.gph h4{margin:0;font-size:18px}.gph .prog{color:var(--dim);font-size:13px}
+.when{color:var(--a);font-size:14px;margin-top:4px}
+.bar{height:6px;background:var(--p2);border-radius:9px;margin-top:10px;overflow:hidden}.bar i{display:block;height:100%;background:var(--c)}
+.gcur{border-color:var(--c);min-height:190px}
+.gs .tag{display:inline-block;font-size:12px;padding:2px 9px;border-radius:99px;background:var(--p2);color:var(--dim);border:1px solid var(--line);margin-right:6px}
+.gs .tag.me{color:#04121c;background:var(--g);border-color:var(--g)}
+.gs .hint{font-size:12px;color:var(--dim)}
+.gs .gi{font-family:"B612 Mono",monospace;font-size:clamp(22px,5vw,30px);margin-top:12px;line-height:1.2}
+.gs .gi small{display:block;font-size:13px;color:var(--dim);margin-top:4px}
+.gs .gv{font-family:"B612 Mono",monospace;font-size:clamp(20px,4.4vw,26px);color:var(--c);margin-top:6px}
+.gs.other .gi{color:var(--dim)}
+.gs .gn{color:var(--dim);font-size:15px;margin-top:10px}
+.gs .bubble{font-size:clamp(20px,4.6vw,26px);margin-top:12px;color:var(--ink);background:var(--p2);border-radius:14px;padding:12px 16px;border:1px solid var(--line)}
+.gs.call.mine .bubble{border-color:var(--g)}
+.gs.cl .gi{margin-bottom:12px}
+.gs.funk .gi{font-size:20px;margin:12px 0}
+.gnav{justify-content:space-between;margin:4px 0 12px}.gnav .btn.big{flex:1;min-height:60px;font-size:18px}
+.btn[disabled]{opacity:.4}
+.glist{margin:0;padding-left:26px;font-size:14px;color:var(--ink)}
+.glist li{padding:6px 2px;border-top:1px dashed var(--line);cursor:pointer}
+.glist li.done{color:var(--dim);text-decoration:line-through}.glist li.cur{color:var(--c);font-weight:700}
+select{appearance:auto}
 @media(max-width:600px){header .rt{font-size:12px}.say{font-size:17px}.stn .role{width:58px}}
 @media(prefers-reduced-motion:no-preference){.card{animation:in .25s ease-out}@keyframes in{from{opacity:0;transform:translateY(4px)}}}
 </style>
@@ -118,6 +143,7 @@ a{color:var(--c)}
   <div class="cs mono" id="hCs">EFB</div>
   <div class="rt mono" id="hRt">Kein Flug geladen</div>
   <span id="sync">–</span><span class="dot" id="hDot"></span>
+  <button id="hSet" class="gear" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg></button>
 </header>
 
 <main>
@@ -150,7 +176,7 @@ a{color:var(--c)}
 <section class="tab" id="t-check">
   <div class="row" style="justify-content:space-between"><h2>Checklisten</h2><button class="btn ghost" id="ckReset">Alle zurücksetzen</button></div>
   <div id="ckBody"></div>
-  <p class="msg">A320 Normal Checklist. Werte in Cyan kommen aus deinen Flugdaten, ____ trägst du unter Flug ein. Tippe einen Punkt zum Abhaken.</p>
+  <p class="msg" id="ckNote">A320 Normal Checklist. Werte in Cyan kommen aus deinen Flugdaten, ____ trägst du unter Flug ein. Tippe einen Punkt zum Abhaken.</p>
 </section>
 
 <!-- KARTE -->
@@ -158,6 +184,12 @@ a{color:var(--c)}
   <h2>Route</h2>
   <div id="map"></div>
   <div class="card" style="margin-top:12px"><h3>Online auf deiner Strecke</h3><div id="onlineList" class="empty">Noch keine VATSIM-Daten.</div></div>
+</section>
+
+<!-- EINSTELLUNGEN -->
+<section class="tab" id="t-set">
+  <h2>Einstellungen</h2>
+  <div id="setBody"></div>
 </section>
 
 <!-- INFO -->
@@ -200,7 +232,7 @@ a{color:var(--c)}
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const KEY='efb.v1';
-const blank=()=>({cs:'',type:'',dep:'',arr:'',altn:'',gate:'',arrGate:'',crz:'',route:'',sid:'',star:'',exitFix:'',depRwy:'',arrRwy:'',squawk:'',atisDep:'',atisArr:'',qnhDep:'',qnhArr:'',clearedAlt:'',passing:'',nextFix:'',hdg:'',appType:'ILS',climb:'',fuel:'',trim:'',flaps:'',vspeeds:'',mins:'',clrType:'sid',wps:[],depPos:null,arrPos:null});
+const blank=()=>({cs:'',type:'',dep:'',arr:'',altn:'',gate:'',arrGate:'',crz:'',route:'',sid:'',star:'',exitFix:'',depRwy:'',arrRwy:'',squawk:'',atisDep:'',atisArr:'',qnhDep:'',qnhArr:'',clearedAlt:'',passing:'',nextFix:'',hdg:'',appType:'ILS',climb:'',ta:'',tl:'',tod:'',fuel:'',trim:'',flaps:'',vspeeds:'',mins:'',clrType:'sid',wps:[],depPos:null,arrPos:null});
 let S={user:'OnboardTransponder595',f:blank(),phase:'boden',mem:{},ck:{},tab:'flug',req:null,sp:false};
 try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s)S={...S,...s,f:{...blank(),...s.f}}}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
@@ -232,10 +264,10 @@ const K={
  squawk:{l:'Squawk',sp:digits,num:1},atisDep:{l:'ATIS Abflug',sp:spell},atisArr:{l:'ATIS Ziel',sp:spell},qnhDep:{l:'QNH Abflug',sp:digits,num:1},qnhArr:{l:'QNH Ziel',sp:digits,num:1},
  clearedAlt:{l:'Freigegebene Höhe',sp:altSp,o:['5000','FL100','FL150','FL240']},passing:{l:'Passing (aktuelle Höhe)',sp:altSp,o:['3000','5000','FL80','FL120']},
  nextFix:{l:'Nächster Wegpunkt',sp:fixSp},hdg:{l:'Heading',sp:digits,num:1,o:['090','180','270','360']},appType:{l:'Anflugart',sp:s=>String(s||'').replace('ILS','I L S').replace('RNAV','R-nav').toLowerCase(),o:['ILS','RNAV','VISUAL','LOC']},
- fuel:{l:'Fuel (Block)'},flaps:{l:'Flaps (CONF)',o:['1','1+F','2','3']},vspeeds:{l:'V1/VR/V2/FLX'},trim:{l:'Pitch trim'},mins:{l:'MDA/DH'},
+ fuel:{l:'Fuel (Block)'},ta:{l:'Transition Alt'},tl:{l:'Transition Level'},tod:{l:'TOD (NM vor Ziel)'},flaps:{l:'Flaps (CONF)',o:['1','1+F','2','3']},vspeeds:{l:'V1/VR/V2/FLX'},trim:{l:'Pitch trim'},mins:{l:'MDA/DH'},
  climb:{l:'Steigen',sp:s=>s==='VIA SID'?'climb via SID':'climb '+altSp(s)}
 };
-const FORM=['cs','type','dep','arr','altn','gate','arrGate','crz','sid','exitFix','star','depRwy','arrRwy','squawk','atisDep','atisArr','qnhDep','qnhArr','fuel','flaps','vspeeds','trim','mins'];
+const FORM=['cs','type','dep','arr','altn','gate','arrGate','crz','ta','tl','tod','sid','exitFix','star','depRwy','arrRwy','squawk','atisDep','atisArr','qnhDep','qnhArr','fuel','flaps','vspeeds','trim','mins'];
 
 /* ---------- VATSIM ---------- */
 let V={ctl:[],atis:[],t:null,err:false},MET={};
@@ -311,6 +343,8 @@ async function loadSB(){
     f.wps=fx.filter(x=>x.pos_lat&&x.type!=='apt').map(x=>[+x.pos_lat,+x.pos_long,x.ident]);
     if(j.origin?.pos_lat)f.depPos=[+j.origin.pos_lat,+j.origin.pos_long];if(j.destination?.pos_lat)f.arrPos=[+j.destination.pos_lat,+j.destination.pos_long];
     f.clearedAlt=f.crz;f.nextFix=f.exitFix;
+    const ta=parseInt(j.origin?.trans_alt||0),tl=parseInt(j.destination?.trans_level||0),el=parseInt(j.destination?.elevation||0);
+    if(ta)f.ta=ta+' ft';if(tl)f.tl='FL'+String(Math.round(tl/100)).padStart(3,'0');if(ia)f.tod=String(Math.round((ia-el)*3/1000));
     if(j.fuel?.plan_ramp)f.fuel=j.fuel.plan_ramp+' '+String(j.params?.units||'kgs').toUpperCase().replace('KGS','KG').replace('LBS','LB');
     if(f.sid)remember(f.dep,f.sid);
     S.f=f;S.ck={};S.phase='boden';save();renderAll();pullMetar();
@@ -466,13 +500,648 @@ const CK=[
 ];
 const fill=s=>s.replace(/\{(\w+)\}/g,(_,k)=>F()[k]||'____');
 function renderCheck(){
-  $('#ckBody').innerHTML=CK.map(c=>{
+  const g=S.set&&S.set.mode==='guided';$('#ckReset').style.display=g&&!S.showList?'none':'';$('#ckNote').style.display=g&&!S.showList?'none':'';
+  if(g&&!S.showList){renderGuided();return}
+  $('#ckBody').innerHTML=(g?'<div class="row" style="margin-bottom:10px"><button class="btn" id="gBackGuide">← Zurück zum geführten Ablauf</button></div>':'')+CK.map(c=>{
     const items=c.it.map((x,i)=>[x,i]).filter(([x])=>x!=='LINE');
     const done=items.filter(([_,i])=>S.ck[c.id+i]).length,all=done===items.length;
     const open=c.ph===S.phase&&!all&&!CK.some(o=>o.ph===S.phase&&o!==c&&CK.indexOf(o)<CK.indexOf(c)&&!o.it.every((x,i)=>x==='LINE'||S.ck[o.id+i]));
     return`<details class="card ck ${all?'done':''} ${c.em?'em':''}" ${open?'open':''}><summary><h4>${esc(c.n.toUpperCase())}<span class="prog">${all?'✓ COMPLETE':done+' / '+items.length}</span></h4></summary><ul>`+
       c.it.map((x,i)=>x==='LINE'?'<li class="line">below the line</li>':`<li data-ck="${c.id+i}" class="${S.ck[c.id+i]?'on':''}"><span class="i">${esc(x[0].toUpperCase())}${x[2]?`<small>${esc(x[2])}</small>`:''}</span><span class="v">${esc(fill(x[1]))}</span></li>`).join('')+`</ul>${c.note?`<div class="msg">${esc(c.note)}</div>`:''}</details>`}).join('');
 }
+/* ---------- Geführte Procedures ----------
+   Ablauf nach Airbus-A320-SOP-Struktur (Flows + Normal Checklist).
+   Abgeglichen mit: FlyByWire A32NX SOP, TheAirlinePilots „A320 Normal Procedures" (2025),
+   JayDees Fenix-A320-Guide v1.31.1 (Fenix-spezifische Schritte).
+   Zeilenformat:  ROLLE|SCHALTER|STELLUNG|Hinweis
+                  @ROLLE|Callout-Text
+                  #checkliste:teil        (down | below | all)
+                  !funkphase:Anfrage|Beschriftung
+                  ~ am Anfang = nur in Detailstufe „Voll"
+*/
+const FLOWS=[
+{id:'prelim',n:'Preliminary Cockpit Preparation',f:'boden',t:'Am Gate, Flugzeug kalt und dunkel',s:`
+PM|EFB|ON & SET|[Fenix] Settings prüfen, Sim Settings speichern
+PM|ENG MASTER 1 + 2|OFF
+PM|ENG MODE selector|NORM
+PM|WX RADAR|OFF
+PM|PRED W/S|OFF
+PM|LANDING GEAR lever|DOWN
+PM|WIPERS|BOTH OFF
+~PM|BAT 1 + 2 voltage|CHECK > 25.5 V|Mit BAT aus auf dem ELEC-Panel ablesen
+PM|BAT 1 + 2|ON / AUTO
+PM|EXT PWR|ON|Wenn AVAIL leuchtet
+PM|NAV & LOGO lights|ON
+PM|RMP|ON · Frequenzen SET|Green NAV- und SEL-Licht aus
+~PM|APU FIRE pb|IN & GUARDED · AGENT lights OFF
+~PM|APU FIRE TEST|PRESS (max. 3 s)|Erwartet: APU FIRE Warning, Master Warning, Chime
+PM|APU MASTER|ON
+PM|APU START|ON|Mind. 3 s nach APU MASTER
+PM|APU AVAIL|CHECK|Auf ECAM warten, bis AVAIL kommt
+PM|EXT PWR|OFF|Optional – APU versorgt jetzt
+PM|APU BLEED|ON
+PM|ADIRS 1 + 2 + 3|NAV|Alignment läuft (ca. 7–10 min)
+PM|COCKPIT LIGHTS|AS RQRD
+~CM1|ECAM RCL pb|PRESS 3 s|Gespeicherte Warnungen ansehen
+~PM|ECAM ENG page|CHECK OIL QTY
+~PM|ECAM HYD page|CHECK reservoir levels
+~PM|ECAM DOOR page|CHECK OXY pressure
+PM|FLAPS lever|CHECK position = ECAM
+PM|SPEED BRAKE lever|RETRACTED & DISARMED
+PM|ACCU PRESS|CHECK green band
+PM|PARKING BRAKE|ON · BRAKE PRESS CHECK
+~PM|EMERGENCY EQUIPMENT|CHECK on board
+~PM|CIRCUIT BREAKERS|CHECK (overhead + rear)
+PM|GEAR PINS & COVERS|CHECK on board & stowed
+PM|EFB – Ground Services|AS DESIRED|[Fenix] Boarding, Catering, Fuel
+PM|EFB – Mass & Balance|LOAD AIRCRAFT|[Fenix] Ggf. vorher SimBrief importieren`},
+
+{id:'walk',n:'Exterior Walkaround',f:'boden',t:'Optional – im Sim meist übersprungen',opt:1,s:`
+~PM|Linker Bug|AOA probes, static ports, Oxygen-Discharge grün
+~PM|Nase|Pitot, TAT probes, Radom, Avionik-Türen zu
+~PM|Bugfahrwerk|Chocks, Reifen, Lichter, Safety pin entfernt
+~PM|Rechter Bug|Static ports, AOA, Cargo door
+~PM|Rumpf Mitte unten|Antennen, Ram Air Inlet, Pack Intakes frei
+~PM|Rechter Flügel + Triebwerk 2|Fan Cowls zu, Fan Blades, Slats, Tankentlüftung, Nav light
+~PM|Rechtes Hauptfahrwerk|Reifen, Bremsverschleiß, Pins entfernt, keine Lecks
+~PM|Heck + APU|Leitwerk, Static discharger, APU-Türen zu, Exhaust frei
+~PM|Linkes Hauptfahrwerk + Flügel + Triebwerk 1|wie rechts`},
+
+{id:'ovhd',n:'Cockpit Preparation – Overhead',f:'boden',t:'Nach Preliminary Prep, Overhead-Scan von links oben nach rechts unten',s:`
+PF|ALL WHITE LIGHTS|OFF|Beim Scan alle weißen Lichter ausschalten
+~PF|RCDR GND CTL|ON
+~PF|CVR TEST|PRESS & HOLD|Testton hören
+~PF|EVAC CAPT & PURS/CAPT|AS RQRD
+PF|ADIRS 1 + 2 + 3|CHECK NAV
+PF|STROBE|AUTO
+PF|BEACON|OFF
+PF|NAV & LOGO|ON
+PF|SEAT BELTS|ON
+PF|NO SMOKING|AUTO
+PF|EMER EXIT LT|ARM
+PF|PROBE / WINDOW HEAT|AUTO
+PF|LDG ELEV|AUTO
+PF|PACK FLOW|AS RQRD (NORM)
+PF|X BLEED|AUTO
+PF|APU BLEED|CHECK ON
+PF|AIR COND panel|CHECK no white lights
+~PF|BAT 1 + 2|OFF then ON|Nach 10 s Ladestrom < 60 A und fallend (ECAM ELEC)
+PF|ELEC panel|CHECK no amber except GEN FAULT
+PF|FUEL PUMPS|ON (all)
+PF|FUEL MODE SEL|AUTO
+~PF|ENG 1 + 2 FIRE pb|IN & GUARDED · AGENT lights OFF
+~PF|ENG 1 + 2 FIRE TEST|PRESS|Fire Warning, Chime, ENG FIRE-Lichter
+PF|OXYGEN CREW SUPPLY|ON
+~PF|AUDIO SWITCHING|NORM
+~PF|MAINT / VENT panel|CHECK all lights off`},
+
+{id:'ped',n:'Cockpit Preparation – Pedestal & MCDU',f:'boden',t:'Nach Overhead-Scan',s:`
+~PF|ISIS / STBY instrument|CHECK no flags
+~PF|CLOCK|CHECK / SET
+PF|A/SKID & N/W STRG|ON
+~PF|ANN LT|TEST then BRT
+PF|THRUST LEVERS|IDLE|Hebel einmal ganz durchbewegen, dann IDLE
+PF|ENG MASTER 1 + 2|CHECK OFF
+PF|ENG MODE selector|CHECK NORM
+PF|PARKING BRAKE|CHECK ON · ACCU / BRAKE PRESS CHECK
+PF|GRAVITY GEAR EXTN|CHECK stowed
+PF|ATC (Transponder)|STBY · ALT RPTG ON · SYS 1
+PF|Squawk|SET {squawk}|Sobald von Delivery bekommen
+PF|RMP|ON · Frequenzen SET|VHF1 ATC, VHF2 ATIS
+PF|MCDU INIT A|INIT REQUEST|SimBrief-Plan laden; FLT NBR {cs}, Cost Index, CRZ FL {crz}
+PF|MCDU F-PLN – DEPARTURE|RWY {depRwy} · SID {sid}|Am Abflugplatz-LSK → DEPARTURE → TMPY INSERT
+PF|MCDU F-PLN|CHECK route, DISCONTINUITIES löschen|Mit CLR
+~PF|MCDU F-PLN|CHECK DIST TO DEST vs. Flugplan
+~PF|MCDU RAD NAV|CHECK
+PF|MCDU INIT B / Fuel|ZFW, ZFWCG, BLOCK {fuel}|[Fenix] Werte aus EFB Mass & Balance; oder FUEL PLANNING
+PF|EFB Departure Perf|CALCULATE|[Fenix] Airport, Runway, Wetter, Loadsheet-Sync
+PF|MCDU PERF TAKEOFF|V1 / VR / V2 {vspeeds}|Dazu FLAPS/THS {flaps}, FLEX TEMP
+PF|MCDU PERF TAKEOFF|THR RED / ACC · TRANS ALT {ta}|Üblich: THR RED 1000 ft, ACC 1000–3000 ft AAL
+~PF|MCDU SEC F-PLN|AS RQRD`},
+
+{id:'glare',n:'Cockpit Preparation – Glareshield & Final',f:'boden',t:'MCDU fertig',s:`
+CM|BARO REF (EFIS + ISIS)|SET QNH {qnhDep}|Unterschied PFD Captain/FO max. 20 ft
+CM|FD|CHECK ON
+CM|LS / ND MODE & RANGE|AS RQRD
+PF|FCU SPD|CHECK DASHED
+PF|FCU HDG|CHECK DASHED · HDG V/S
+PF|FCU ALT|SET initial cleared altitude
+~CM|OXYGEN MASK TEST|PERFORM|Crew supply ON, Test-Knopf drücken, Blinker gelb→schwarz
+~CM|PFD / ND brightness|AS RQRD
+~CM|LOUDSPEAKER|SET (ca. 1 Uhr)
+PF|PFD / ND|CHECK display & data
+PF|ECAM PRESS page|CHECK LDG ELEV AUTO
+PF|ECAM STS|CHECK
+PF|WX RADAR|CHECK OFF · PWS OFF
+PM|ADIRS|CHECK aligned, Position plausibel
+!boden:Clearance|ATC Clearance holen
+@PF|Request ATC clearance, please.
+PM|ATC CLEARANCE|OBTAIN|SID, Squawk, Höhe in MCDU/FCU übernehmen
+PM|MCDU F-PLN / FCU ALT|CHECK gegen Clearance`},
+
+{id:'brief',n:'Takeoff Briefing',f:'boden',t:'Cockpit fertig vorbereitet',s:`
+@PF|Takeoff briefing.
+PF|Aircraft & Status|Technischer Zustand, MEL, Fuel {fuel}
+PF|Weather & NOTAMs|Wind, Piste {depRwy}, ATIS {atisDep}, QNH {qnhDep}
+PF|Takeoff Performance|FLAPS {flaps}, V-Speeds {vspeeds}, FLEX/TOGA, Packs, Anti-Ice
+PF|Taxi|Erwartete Taxi-Route, Hotspots
+PF|Departure|SID {sid}, Initial Climb, MSA, Transition Altitude {ta}
+PF|Rejected Takeoff|Unter 100 kt: Abbruch bei jeder Warnung. 100 kt bis V1: nur bei schwerem Fehler. Nach V1: weiter
+PF|Engine Failure after V1|Keine Aktion unter 400 ft außer Gear up; EO-Prozedur / Acceleration altitude
+@PM|Briefing understood.`},
+
+{id:'bpush',n:'Before Pushback or Start',f:'boden',t:'Boarding fertig, Türen gleich zu',s:`
+PF|EFB Ground Services|Doors close, Stairs/GPU remove|[Fenix]
+CM|SEATING POSITION|ADJUST
+CM|FINAL LOADSHEET|CHECK · ZFW / ZFWCG gegen MCDU
+CM|FUEL ON BOARD|CHECK {fuel} (ECAM vs. Plan)
+PF|FMS TAKEOFF DATA|CROSS CHECK
+PF|MCDU|PF: PERF TO page · PM: F-PLN page
+PM|EXT PWR|CHECK OFF / disconnected
+@PF|Before start checklist, down to the line.
+#bs:down`},
+
+{id:'startclr',n:'At Start / Pushback Clearance',f:'boden',t:'Bereit zum Pushback',s:`
+!boden:Pushback|Startup- und Pushback-Freigabe holen
+PM|PUSHBACK / START CLEARANCE|OBTAIN
+PM|ATC (Transponder)|SET for operation (AUTO)
+CM|WINDOWS / DOORS|CHECK CLOSED (ECAM DOOR)
+CM|SLIDES|CHECK ARMED
+PF|BEACON|ON
+PF|THRUST LEVERS|CHECK IDLE
+PF|ACCU PRESS|CHECK green
+PF|ECAM|CHECK NW STRG DISC memo|Bei Pushback
+@PF|Below the line.
+#bs:below
+PF|PARKING BRAKE|RELEASE for pushback|[Fenix] EFB → Ground Services → Pushback
+PF|PARKING BRAKE|SET when pushback complete · BRAKE PRESS CHECK`},
+
+{id:'eng',n:'Engine Start',f:'boden',t:'Während oder nach Pushback',s:`
+PF|ENG MODE selector|IGN / START
+@PF|Starting engine two.
+PF|ENG MASTER 2|ON
+PF|ENG 2 start|MONITOR|N2 steigt · ~16 % Zündung · ~22 % Fuel Flow · EGT innerhalb 15 s · ~50 % Startventil zu
+PF|ENG 2 idle parameters|CHECK|N1 ≈ 19–20 %, N2 ≈ 60–68 %, EGT ≈ 400–520 °C, FF ≈ 280–300 kg/h
+@PF|Starting engine one.
+PF|ENG MASTER 1|ON
+PF|ENG 1 start|MONITOR|wie Triebwerk 2
+PF|ENG 1 idle parameters|CHECK|N1 ≈ 19–20 %, N2 ≈ 60–68 %, EGT ≈ 400–520 °C`},
+
+{id:'after',n:'After Start',f:'boden',t:'Beide Triebwerke stabil im Idle',s:`
+PF|ENG MODE selector|NORM
+PF|APU BLEED|OFF
+PF|ENG ANTI ICE|AS RQRD
+PF|WING ANTI ICE|AS RQRD
+PF|APU MASTER|OFF
+PM|GROUND SPOILERS|ARM
+PM|RUDDER TRIM|CHECK ZERO
+PM|FLAPS|SET {flaps} for takeoff
+PM|PITCH TRIM|SET {trim}
+PF|ECAM|CHECK no STATUS reminder
+PF|NW STRG DISC memo|CHECK not displayed
+@PF|Clear to disconnect.
+@PF|After start checklist.
+#as:all`},
+
+{id:'taxi',n:'Taxi',f:'boden',t:'After Start Checklist complete',s:`
+!boden:Taxi|Taxi-Freigabe holen
+PM|TAXI CLEARANCE|OBTAIN
+PF|NOSE light|TAXI
+PF|RWY TURN OFF lights|ON
+@PF|Clear left side.
+@PM|Clear right side.
+PF|PARKING BRAKE|RELEASE
+PM|BRAKE PRESS|CHECK ZERO
+PF|THRUST|Leicht nach vorn, max. ca. 40 % N1|Taxi 20–30 kt geradeaus, ca. 10 kt in Kurven
+@PF|Brake check.
+@PM|Pressure zero.
+@PF|Flight control check.
+PF|SIDESTICK|FULL UP · FULL DOWN · NEUTRAL|PM prüft auf ECAM F/CTL
+@PM|Full up … full down … neutral.
+PF|SIDESTICK|FULL LEFT · FULL RIGHT · NEUTRAL
+@PM|Full left … full right … neutral.
+@PF|Rudder.
+PF|RUDDER|FULL LEFT · FULL RIGHT · NEUTRAL
+@PM|Full left … full right … neutral.
+PM|ATC CLEARANCE|CONFIRM · SID {sid} in F-PLN prüfen
+PM|FCU ALT|CHECK cleared altitude
+PM|BOTH FD|CHECK ON
+CM|TAKEOFF BRIEFING|CONFIRM
+PM|WX RADAR|ON · PWS AUTO
+PM|ATC code|CHECK {squawk}
+CM|TERR ON ND|AS RQRD|Wetterradar PF-Seite, Terrain PM-Seite
+PM|AUTO BRK|MAX
+PM|T.O CONFIG|TEST · T.O CONFIG NORMAL
+PM|T.O MEMO|CHECK NO BLUE
+CM|CABIN REPORT|RECEIVED (Cabin ready)
+@PF|Before takeoff checklist, down to the line.
+#bt:down`},
+
+{id:'lineup',n:'Before Takeoff – Line Up',f:'boden',t:'Am Holding Point',s:`
+PM|BRAKE TEMP|CHECK (< 150 °C)|Brake Fans aus, wenn an
+!boden:Ready for departure|Line-up-Freigabe holen
+PM|LINE-UP CLEARANCE|OBTAIN
+PF|STROBE|ON
+PF|LANDING LIGHTS|ON
+PF|NOSE light|T.O
+PM|TCAS|TA or TA/RA
+CM|APPROACH PATH|CLEAR OF TRAFFIC
+@PM|Approach path clear.
+PM|CABIN CREW|ADVISE
+CM|TAKEOFF RUNWAY|CONFIRM {depRwy}
+PM|PACKS 1 + 2|AS RQRD
+PM|ENG MODE selector|AS RQRD (IGN bei Starkregen/Wasser)
+@PF|Below the line.
+#bt:below`},
+
+{id:'tko',n:'Takeoff',f:'abflug',t:'Startfreigabe erhalten',s:`
+PM|TAKEOFF CLEARANCE|OBTAIN
+@PF|Takeoff.
+PF|THRUST LEVERS|50 % N1, stabilisieren
+PF|SIDESTICK|Halb nach vorn (Seitenwind > 20 kt oder Rückenwind: voll) bis 80 kt, neutral bei 100 kt
+PF|BRAKES|RELEASE
+PF|THRUST LEVERS|FLX or TOGA
+PM|CHRONO|START
+@PF|MAN FLEX {flex}, SRS, runway, A/THR blue.
+PM|TAKEOFF N1|CHECK bis 80 kt
+@PM|Thrust set.
+@PM|One hundred knots.
+@PF|Checked.
+@PM|V one.
+@PM|Rotate.
+PF|ROTATION|ca. 3°/s auf ca. 15° Pitch, dann SRS folgen
+@PM|Positive climb.
+@PF|Gear up.
+PM|LANDING GEAR|UP
+@PM|Gear up.
+PF|AUTOPILOT|ON (über 100 ft AGL)|"Autopilot one on" ansagen
+PF|THRUST LEVERS|CL bei LVR CLB blinkend (Thrust Reduction Altitude)
+PM|PACKS 1 + 2|ON (falls aus)`},
+
+{id:'atko',n:'After Takeoff',f:'abflug',t:'Acceleration Altitude',s:`
+PM|TARGET SPEED|CHECK – beschleunigt auf Climb Speed
+@PF|Flaps one.
+@PM|Speed checked, flaps one.
+PM|FLAPS|1 (bei F-Speed, falls vorher höher)
+@PF|Flaps zero.
+@PM|Speed checked, flaps zero.
+PM|FLAPS|0 (bei S-Speed)
+PM|GROUND SPOILERS|DISARM
+PM|NOSE light|OFF
+PM|RWY TURN OFF lights|OFF
+PM|APU BLEED / MASTER|AS RQRD
+PM|TCAS|TA/RA
+PM|ENG MODE selector|AS RQRD
+PM|ANTI ICE|AS RQRD
+@PF|After takeoff checklist, down to the line.
+#at:down`},
+
+{id:'ta',n:'Transition Altitude',f:'abflug',t:'Beim Durchsteigen der Transition Altitude ({ta})',s:`
+@PF|Set standard.
+CM|BARO REF (EFIS + ISIS)|STD · CROSS CHECK
+@PM|Standard set, passing flight level …
+@PF|Checked.
+PF|CRZ FL|CHECK {crz}
+@PF|Below the line.
+#at:below`},
+
+{id:'climb10',n:'Climb – 10.000 ft',f:'abflug',t:'Durch FL100 im Steigflug',s:`
+@PF|Ten thousand feet checks.
+@PM|Ten thousand feet.
+PM|LANDING LIGHTS|OFF & RETRACT
+PM|SEAT BELTS|AS RQRD
+CM|EFIS|ARPT / CSTR AS RQRD
+PM|TERR ON ND|OFF
+PM|ECAM MEMO|REVIEW
+PM|NAVAIDS|CLEAR manually tuned
+~PM|SEC F-PLN|COPY ACTIVE
+PM|OPT / MAX ALT|CHECK`},
+
+{id:'cruise',n:'Cruise',f:'reise',t:'Reiseflughöhe {crz} erreicht',s:`
+PM|TOC|Fuel und Zeit notieren
+PF|FMA|CHECK
+PF|ECAM MEMO + SD pages|REVIEW|ENG, BLEED, PRESS, ELEC, HYD, FUEL, COND, F/CTL
+PF|PRESSURIZATION|CHECK
+PF|FLIGHT PROGRESS|MONITOR · Fuel alle 30 min prüfen
+PF|STEP CLIMB / WX RADAR|AS RQRD
+PF|TOP OF DESCENT|CHECK · ca. {tod} NM vor dem Ziel|Faustformel: (Reiseflughöhe − Platzhöhe) × 3 / 1000`},
+
+{id:'dprep',n:'Descent Preparation',f:'reise',t:'Ca. 15 min / 30 NM vor Top of Descent',s:`
+!reise:Sinkflug anfragen|Zuerst ATIS/Wetter Ziel holen (Tab Wetter)
+PM|WEATHER & LANDING INFO|OBTAIN · ATIS {atisArr}, QNH {qnhArr}, Piste {arrRwy}
+CM|NAV CHARTS|PREPARE
+PM|LANDING PERFORMANCE|COMPUTE|[Fenix] EFB Arrival Perf
+CM|MCDU F-PLN – ARRIVAL|APPR {appType} {arrRwy} · STAR {star} · VIA / TRANS|Am Zielplatz-LSK → ARRIVAL → TMPY INSERT
+CM|MCDU F-PLN|CHECK Anflug + Missed Approach, Discontinuities
+~CM|MCDU DES WIND|CHECK
+CM|MCDU PERF DES|CHECK Speed (250 kt unter FL100)
+CM|MCDU PERF APPR|QNH {qnhArr}, TEMP, WIND, MINIMUM {mins}, LDG CONF
+~CM|MCDU PERF GO AROUND|CHECK THR RED / ACC
+CM|MCDU RAD NAV|CHECK / identify navaids
+PF|ECAM|CHECK LDG ELEV AUTO · STATUS
+PF|AUTO BRK|LO / MED
+@PF|Approach briefing.
+PF|APPROACH BRIEFING|PERFORM|Wetter, STAR, Anflug, Minimums {mins}, Go-around, Taxi zum Stand
+CM|TERR ON ND|AS RQRD
+PM|ENG ANTI ICE|AS RQRD
+PM|DESCENT CLEARANCE|OBTAIN
+PF|FCU ALT|SET cleared altitude
+@PF|Approach checklist, down to the line.
+#ap:down`},
+
+{id:'tod',n:'Top of Descent',f:'reise',t:'Am TOD (ca. {tod} NM vor dem Ziel)',s:`
+PF|FCU ALT|PUSH – DES mode
+PF|DESCENT|MONITOR · VDEV / PROG|Speedbrakes nur bei Bedarf
+PM|ECAM STATUS|CHECK
+PM|SEAT BELTS|AS RQRD`},
+
+{id:'desc10',n:'Descent – 10.000 ft',f:'anflug',t:'Durch FL100 im Sinkflug',s:`
+@PF|Ten thousand feet checks.
+@PM|Ten thousand feet.
+PM|LANDING LIGHTS|ON
+PM|NOSE light|T.O
+PM|SEAT BELTS|ON
+CM|EFIS|CSTR
+CM|LS pb|ON for ILS
+PM|NAVAIDS|SELECTED / IDENTIFIED
+PF|NAV ACCURACY|CHECK
+PM|TERR ON ND|AS RQRD`},
+
+{id:'tl',n:'Transition Level',f:'anflug',t:'Beim Durchsinken des Transition Level ({tl}), nach Freigabe auf QNH',s:`
+@PF|Set QNH {qnhArr}.
+CM|BARO REF (EFIS + ISIS)|QNH {qnhArr} · CROSS CHECK
+@PM|QNH {qnhArr} set, passing … feet.
+@PF|Checked.
+@PF|Approach checklist, below the line.
+#ap:below`},
+
+{id:'iapp',n:'Initial Approach',f:'anflug',t:'Ca. 15–20 NM vor der Landung',s:`
+CM|APPROACH PHASE|CHECK / ACTIVATE|Im NAV automatisch bei DECEL, sonst 15 NM vorher aktivieren
+PF|MANAGED SPEED|CHECK
+CM|LS pb|CHECK ON
+PM|AUTO BRK|CHECK SET
+PM|TCAS|TA or TA/RA
+PM|CABIN CREW|„Cabin crew, take your seats for landing"`},
+
+{id:'final',n:'Final Approach',f:'anflug',t:'Freigabe für den Anflug',s:`
+@PF|Flaps one.
+@PM|Speed checked, flaps one.
+PM|FLAPS|1 (Green Dot, ca. 3 NM vor dem Endanflug)
+PF|APPR pb|PRESS (wenn cleared for ILS)
+PF|AP 2|ON (beide APs)
+PF|LOC / G/S|CHECK armed, then captured|FMA ansagen: „LOC star" / „G/S star"
+PF|GO AROUND ALTITUDE|SET (FCU)
+@PF|Flaps two.
+@PM|Speed checked, flaps two.
+PM|FLAPS|2 (spätestens 2000 ft AGL)
+@PF|Gear down.
+PM|LANDING GEAR|DOWN
+@PM|Gear down.
+PM|AUTO BRK|CONFIRM
+PM|GROUND SPOILERS|ARM
+PM|NOSE light|T.O
+PM|RWY TURN OFF lights|ON
+@PF|Flaps three.
+@PM|Speed checked, flaps three.
+PM|FLAPS|3
+PM|ECAM WHEEL page|CHECK · 3 GREEN
+@PF|Flaps full.
+@PM|Speed checked, flaps full.
+PM|FLAPS|FULL
+PM|A/THR|CHECK SPEED mode or OFF
+PM|WING ANTI ICE|OFF
+PM|LDG MEMO|CHECK NO BLUE
+CM|CABIN REPORT|RECEIVED
+@PF|Landing checklist.
+#ld:all
+!landung:Erstanruf Tower|Tower rufen / Landefreigabe
+@PM|One thousand.
+@PF|Stabilized.`},
+
+{id:'land',n:'Landing',f:'landung',t:'Kurz vor der Schwelle',s:`
+PF|LAND mode (Autoland)|CHECK at 350 ft RA|Nur bei Autoland
+@PM|One hundred above.
+@PM|Minimum.
+@PF|Continue.
+PF|FLARE|ca. 30 ft
+PF|THRUST LEVERS|IDLE bei „RETARD"
+PF|DEROTATION|INITIATE
+PF|REVERSERS|REV MAX or REV IDLE
+@PM|Spoilers. Reverse green. Decel.
+@PM|Seventy knots.
+PF|THRUST LEVERS|REV IDLE
+PF|REVERSERS|STOW at taxi speed
+PF|AUTO BRK|DISENGAGE before 20 kt
+PF|AUTOPILOT|OFF (Autoland)`},
+
+{id:'ga',n:'Go Around (nur bei Bedarf)',f:'landung',t:'Durchstarten',opt:1,s:`
+PF|THRUST LEVERS|TOGA
+PF|ROTATION|ca. 15°, dann SRS
+@PF|Go around, flaps.
+PM|FLAPS|eine Stufe einfahren
+PF|FMA|CHECK / ANNOUNCE (MAN TOGA, SRS, GA TRK)
+@PM|Positive climb.
+@PF|Gear up.
+PM|LANDING GEAR|UP
+PF|NAV or HDG · AP|AS RQRD
+PF|THRUST LEVERS|CL at thrust reduction altitude
+@PF|Flaps one.
+PM|FLAPS|1 at F speed
+@PF|Flaps zero.
+PM|FLAPS|0 at S speed
+PM|GROUND SPOILERS|DISARM
+PM|NOSE / RWY TURN OFF|OFF
+!landung:Go-around|Go-around an ATC melden
+@PF|After takeoff checklist, down to the line.
+#at:down`},
+
+{id:'alnd',n:'After Landing',f:'landung',t:'Piste verlassen',s:`
+PF|GROUND SPOILERS|DISARM
+PF|LANDING LIGHTS|OFF & RETRACT
+PF|STROBE|AUTO
+PF|NOSE light|TAXI
+PF|RWY TURN OFF lights|AS RQRD
+PM|WX RADAR|OFF
+PM|PRED W/S|OFF
+PM|ENG MODE selector|NORM
+PM|FLAPS|RETRACT
+PM|TCAS|STBY
+PM|TERR ON ND|OFF
+PM|APU|START
+PM|ANTI ICE|AS RQRD
+PM|BRAKE TEMP|CHECK · Brake Fans nach 5 min AS RQRD
+@PF|After landing checklist.
+#al:all
+!landung:Taxi to stand|Taxi zum Stand
+PF|TAXI|zum Stand {arrGate}`},
+
+{id:'park',n:'Parking',f:'landung',t:'Am Stand angekommen',s:`
+PF|ACCU PRESS|CHECK green
+PF|PARKING BRAKE|ON · BRAKE PRESS CHECK
+PM|ANTI ICE|OFF
+PM|APU BLEED|ON
+PM|EXT PWR|ON (nur wenn APU nicht verfügbar)
+PF|ENG MASTER 1 + 2|OFF|Mind. 3 min nach hohem Schub
+PF|SLIDES|CHECK DISARMED
+PF|SEAT BELTS|OFF
+PF|BEACON|OFF (Triebwerke ausgelaufen)
+PF|EXTERIOR LIGHTS|AS RQRD
+PF|GROUND CONTACT|ESTABLISH · Chocks|[Fenix] EFB Ground Services: Chocks, GPU, Stairs
+PM|FUEL PUMPS|OFF
+PM|ATC (Transponder)|STBY
+~PM|IRS performance|CHECK (POSITION MONITOR)
+~PM|FUEL QUANTITY|CHECK
+~PM|STS|PRESS · CHECK
+PM|BRAKE FANS|OFF
+PF|PARKING BRAKE|AS RQRD (aus, wenn Chocks drin)
+@PF|Parking checklist.
+#pk:all`},
+
+{id:'secure',n:'Securing the Aircraft',f:'landung',t:'Letzter Flug des Tages / Flugzeug abstellen',opt:1,s:`
+PF|PARKING BRAKE|ON
+PM|OXYGEN CREW SUPPLY|OFF
+PF|ADIRS 1 + 2 + 3|OFF
+PM|EXTERIOR LIGHTS|OFF
+PM|APU BLEED|OFF
+PM|APU MASTER|OFF
+PM|EMER EXIT LT|OFF
+PM|SIGNS|OFF
+PM|EXT PWR|AS RQRD
+PM|BAT 1 + 2|OFF
+@PF|Securing the aircraft checklist.
+#sa:all`}
+];
+
+/* ---------- Einstellungen ---------- */
+S.set={seat:'CA',role:'PF',mode:'guided',detail:'voll',other:true,tts:false,...(S.set||{})};
+S.g={p:0,i:0,done:{},...(S.g||{})};
+const SETS=[
+ ['seat','Sitz',[['CA','Captain (links)'],['FO','First Officer (rechts)']]],
+ ['role','Rolle',[['PF','Pilot Flying'],['PM','Pilot Monitoring']]],
+ ['mode','Hilfe-Stufe',[['list','Nur Checklisten'],['guided','Geführt (Procedures + Checklisten)']]],
+ ['detail','Detail',[['voll','Voll – alles'],['kurz','Kurz – ohne Tests und Nebenpunkte']]],
+ ['other','Aufgaben der anderen Seite',[[true,'Anzeigen'],[false,'Ausblenden']]],
+ ['tts','Vorlesen (andere Seite + Checklisten-Fragen)',[[true,'An'],[false,'Aus']]]
+];
+function renderSet(){
+  $('#setBody').innerHTML=SETS.map(([k,l,o])=>`<div class="card"><h3>${esc(l)}</h3><div class="opts">${o.map(([v,t])=>`<button data-set="${k}" data-v="${v}" class="${S.set[k]===v?'sel':''}">${esc(t)}</button>`).join('')}</div></div>`).join('')+
+  `<div class="card"><h3>SimBrief-Benutzername</h3><div class="row"><input id="setUser" style="flex:1 1 220px;text-transform:none" value="${esc(S.user||'')}"><button class="btn ghost" id="setUserSave">Speichern</button></div></div>
+   <div class="card"><h3>Flug</h3><div class="row"><button class="btn warn" id="setNew">Neuer Flug (alles zurücksetzen)</button></div></div>
+   <div class="card"><h3>Quellen</h3><p class="msg">Abläufe nach Airbus-A320-SOP-Struktur, abgeglichen mit der FlyByWire A32NX SOP, „A320 Normal Procedures" (TheAirlinePilots, 2025) und JayDees Fenix-A320-Guide v1.31.1 (Fenix-spezifische Schritte). Nur für die Flugsimulation.</p></div>`;
+}
+
+/* ---------- Geführter Modus ---------- */
+const CKMAP=Object.fromEntries(CK.map(c=>[c.id,c]));
+function steps(ph){
+  const out=[];
+  ph.s.trim().split('\n').forEach(line=>{
+    line=line.trim();if(!line)return;let x=false;
+    if(line[0]==='~'){x=true;line=line.slice(1)}
+    if(x&&S.set.detail==='kurz')return;
+    if(line[0]==='@'){const i=line.indexOf('|');out.push({k:'call',r:line.slice(1,i),t:line.slice(i+1)});return}
+    if(line[0]==='#'){const[id,part]=line.slice(1).split(':');const c=CKMAP[id];if(!c)return;
+      const li=c.it.indexOf('LINE');let items=c.it.map((it,i)=>[it,i]).filter(([it])=>it!=='LINE');
+      if(part==='down'&&li>=0)items=items.filter(([_,i])=>i<li);
+      if(part==='below')items=items.filter(([_,i])=>li>=0&&i>li);
+      out.push({k:'clh',n:c.n,part});
+      items.forEach(([it,i])=>out.push({k:'cl',c:it[0],v:it[1],sub:it[2]||'',ck:c.id+i}));
+      out.push({k:'cle',n:c.n,part});return}
+    if(line[0]==='!'){const[a,label]=line.slice(1).split('|');const[fp,rq]=a.split(':');out.push({k:'funk',fp,rq,label});return}
+    const[r,i,s,n]=line.split('|');
+    const st={k:'do',r,i,s:s||'',n:n||''};
+    if(!S.set.other&&!who(r).mine)return;
+    out.push(st);
+  });
+  return out;
+}
+/* Wer ist dran? */
+function who(r){
+  const me=S.set.role,seat=S.set.seat;
+  if(r==='PF'||r==='PM')return{mine:r===me,lbl:r===me?'DU · '+r:r};
+  if(r==='CM'||r==='BOTH')return{mine:true,lbl:'BEIDE'};
+  if(r==='CM1')return{mine:seat==='CA',lbl:seat==='CA'?'DU · Captain':'Captain'};
+  if(r==='CM2')return{mine:seat==='FO',lbl:seat==='FO'?'DU · F/O':'First Officer'};
+  return{mine:true,lbl:r};
+}
+const fillG=s=>String(s).replace(/\{(\w+)\}/g,(_,k)=>F()[k]||'____');
+const PHX=()=>FLOWS[S.g.p]||FLOWS[0];
+let lastSpoken='';
+function speak(t){
+  if(!S.set.tts||!('speechSynthesis' in window))return;
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t.replace(/…/g,', '));u.lang='en-US';u.rate=1.02;speechSynthesis.speak(u)}catch(e){}
+}
+function stepView(st,big){
+  if(st.k==='do'){const w=who(st.r);
+    return`<div class="gs ${w.mine?'mine':'other'}"><span class="tag ${w.mine?'me':''}">${esc(w.lbl)}</span>${!w.mine&&big?'<span class="hint">im Sim machst du das selbst</span>':''}
+      <div class="gi">${esc(fillG(st.i))}</div><div class="gv">${esc(fillG(st.s))}</div>${st.n?`<div class="gn">${esc(fillG(st.n))}</div>`:''}</div>`}
+  if(st.k==='call'){const w=who(st.r);
+    return`<div class="gs call ${w.mine?'mine':'other'}"><span class="tag ${w.mine?'me':''}">${esc(w.mine?'DU SAGST ('+st.r+')':st.r+' SAGT')}</span><div class="bubble">„${esc(fillG(st.t))}"</div></div>`}
+  if(st.k==='clh')return`<div class="gs clh"><span class="tag">CHECKLISTE</span><div class="gi">${esc(st.n.toUpperCase())}</div><div class="gn">${st.part==='down'?'bis zur Linie (down to the line)':st.part==='below'?'unter der Linie (below the line)':'komplett'} · PM liest, PF antwortet</div></div>`;
+  if(st.k==='cl'){const me=S.set.role,both=/BOTH/.test(st.v);
+    const reader=me==='PM'?'DU (PM) liest':'PM liest';const ans=both?'BEIDE antworten':me==='PF'?'DU (PF) antwortest':'PF antwortet';
+    return`<div class="gs cl"><span class="tag">${esc(reader)}</span><div class="gi">${esc(st.c.toUpperCase())}${st.sub?`<small>${esc(st.sub)}</small>`:''}</div><span class="tag ${me==='PF'||both?'me':''}">${esc(ans)}</span><div class="gv">${esc(fillG(st.v))}</div></div>`}
+  if(st.k==='cle')return`<div class="gs clh"><span class="tag">PM</span><div class="bubble">„${esc(st.n)} checklist ${st.part==='down'?'down to the line':'complete'}."</div></div>`;
+  if(st.k==='funk')return`<div class="gs funk"><span class="tag">FUNK</span><div class="gi">${esc(st.label)}</div><button class="btn" data-gfunk="${esc(st.fp)}|${esc(st.rq)}">Im Funk-Tab öffnen</button></div>`;
+  return'';
+}
+function sayFor(st){
+  const me=S.set.role;
+  if(st.k==='call'&&!who(st.r).mine)return fillG(st.t);
+  if(st.k==='cl')return me==='PF'?st.c:fillG(st.v).replace(/_+/g,'');
+  if(st.k==='clh'&&me==='PF')return st.n+' checklist'+(st.part==='below'?', below the line':'');
+  if(st.k==='cle'&&me==='PF')return st.n+' checklist '+(st.part==='down'?'down to the line':'complete');
+  return'';
+}
+function renderGuided(){
+  const ph=PHX(),list=steps(ph);if(S.g.i>=list.length)S.g.i=Math.max(0,list.length-1);
+  const st=list[S.g.i];const pct=Math.round(S.g.i/Math.max(1,list.length-1)*100);
+  const nextIdx=FLOWS.findIndex((p,i)=>i>S.g.p&&!p.opt);
+  let h=`<div class="row" style="margin-bottom:10px"><select id="gSel" style="flex:1 1 240px;text-transform:none;color:var(--ink)">${FLOWS.map((p,i)=>`<option value="${i}" ${i===S.g.p?'selected':''}>${S.g.done[p.id]?'✓ ':''}${i+1}. ${esc(p.n)}${p.opt?' (optional)':''}</option>`).join('')}</select><button class="btn ghost" id="gList">Normal Checklist</button></div>`;
+  h+=`<div class="card gph"><div class="row" style="justify-content:space-between"><h4>${esc(ph.n)}</h4><span class="prog">${S.g.i+1} / ${list.length}</span></div>
+     <div class="when">WANN: ${esc(fillG(ph.t))}</div><div class="bar"><i style="width:${pct}%"></i></div></div>`;
+  h+=`<div class="card gcur">${st?stepView(st,true):'<p class="empty">Keine Schritte (Detailstufe).</p>'}</div>`;
+  const atEnd=S.g.i>=list.length-1;
+  h+=`<div class="row gnav"><button class="btn ghost" id="gBack" ${S.g.i===0?'disabled':''}>Zurück</button>`+
+     (atEnd?`<button class="btn big" id="gPhase">${nextIdx>=0?'Phase fertig → '+esc(FLOWS[nextIdx].n):'Flug beendet ✓'}</button>`:`<button class="btn big" id="gNext">Erledigt</button>`)+`</div>`;
+  if(['final','land'].includes(ph.id))h+=`<div class="row" style="margin-top:8px"><button class="btn warn" id="gGA">Go Around</button></div>`;
+  h+=`<div class="card"><h3>Alle Schritte dieser Phase</h3><ol class="glist">${list.map((s,i)=>`<li data-gi="${i}" class="${i<S.g.i?'done':i===S.g.i?'cur':''}">${esc(shortTxt(s))}</li>`).join('')}</ol></div>`;
+  $('#ckBody').innerHTML=h;
+  const key=ph.id+':'+S.g.i;if(st&&key!==lastSpoken){lastSpoken=key;const t=sayFor(st);if(t)speak(t)}
+}
+function shortTxt(s){
+  if(s.k==='do')return`${s.r} · ${fillG(s.i)} – ${fillG(s.s)}`;
+  if(s.k==='call')return`${s.r}: „${fillG(s.t)}"`;
+  if(s.k==='cl')return`☐ ${s.c.toUpperCase()} – ${fillG(s.v)}`;
+  if(s.k==='clh')return`▸ ${s.n} Checklist ${s.part==='down'?'(bis Linie)':s.part==='below'?'(unter Linie)':''}`;
+  if(s.k==='cle')return`▸ ${s.n} checklist ${s.part==='down'?'down to the line':'complete'}`;
+  if(s.k==='funk')return`Funk: ${s.label}`;
+  return'';
+}
+function gGo(p){S.g.p=p;S.g.i=0;const ph=FLOWS[p];if(ph&&ph.f){S.phase=ph.f;S.req=null}save();renderCheck();window.scrollTo(0,0)}
+function gStep(d){
+  const list=steps(PHX());const st=list[S.g.i];
+  if(d>0&&st&&st.k==='cl')S.ck[st.ck]=true;
+  S.g.i=Math.min(Math.max(0,S.g.i+d),list.length-1);save();renderCheck();
+}
+$('#ckBody').addEventListener('click',e=>{
+  if(S.set.mode!=='guided'||S.showList)return;
+  const t=e.target;let b;
+  if(t.closest('#gNext')){gStep(1);return}
+  if(t.closest('#gBack')){gStep(-1);return}
+  if(t.closest('#gPhase')){const list=steps(PHX());const st=list[S.g.i];if(st&&st.k==='cl')S.ck[st.ck]=true;S.g.done[PHX().id]=1;const n=FLOWS.findIndex((p,i)=>i>S.g.p&&!p.opt);if(n>=0)gGo(n);else{save();renderCheck()}return}
+  if(t.closest('#gGA')){gGo(FLOWS.findIndex(p=>p.id==='ga'));return}
+  if(t.closest('#gList')){S.showList=1;renderCheck();return}
+  if(b=t.closest('[data-gi]')){S.g.i=+b.dataset.gi;save();renderCheck();return}
+  if(b=t.closest('[data-gfunk]')){const[fp,rq]=b.dataset.gfunk.split('|');S.phase=fp;const i=REQ[fp].findIndex(q=>q.n===rq);S.req=fp+(i<0?0:i);save();tab('funk');return}
+});
+$('#ckBody').addEventListener('change',e=>{if(e.target.id==='gSel')gGo(+e.target.value)});
+$('#t-set').addEventListener('click',e=>{
+  let b;if(b=e.target.closest('[data-set]')){const k=b.dataset.set;let v=b.dataset.v;if(v==='true')v=true;if(v==='false')v=false;S.set[k]=v;save();renderSet();return}
+  if(e.target.closest('#setUserSave')){S.user=$('#setUser').value.trim();save();e.target.textContent='Gespeichert ✓';return}
+  if(e.target.closest('#setNew')){ask('Neuer Flug? Tippe JA','',['JA'],0,v=>{if(v==='JA'){S.f=blank();S.ck={};S.g={p:0,i:0,done:{}};S.phase='boden';S.req=null;save();tab('flug')}})}
+});
+$('#hSet').onclick=()=>tab('set');
+
 /* ---------- Karte ---------- */
 let MAP=null,LAY=null;
 function renderMap(){
@@ -526,8 +1195,8 @@ function head(){
 function tab(t){
   S.tab=t;save();$$('section.tab').forEach(s=>s.classList.toggle('act',s.id==='t-'+t));$$('nav button').forEach(b=>b.classList.toggle('act',b.dataset.t===t));
   $('#quick').classList.toggle('hide',t!=='funk');
-  if(t==='funk')renderFunk();if(t==='check')renderCheck();if(t==='karte'){renderMap();renderOnline()}if(t==='info')renderInfo();if(t==='flug')renderForm();
-  window.scrollTo(0,0);
+  if(t==='funk')renderFunk();if(t==='check')renderCheck();if(t==='karte'){renderMap();renderOnline()}if(t==='info')renderInfo();if(t==='flug')renderForm();if(t==='set')renderSet();
+  $('#hSet').classList.toggle('act',t==='set');window.scrollTo(0,0);
 }
 function renderAll(){head();tab(S.tab)}
 
@@ -563,7 +1232,7 @@ $('#funkBody').addEventListener('click',e=>{
   if(b=t.closest('[data-act="takeRwy"]')){const a=atisOf(F().dep,'dep');if(a)set('depRwy',a.rwy);return}
   if(b=t.closest('[data-e]')){editKey(b.dataset.e)}
 });
-$('#ckBody').addEventListener('click',e=>{const li=e.target.closest('[data-ck]');if(!li)return;const k=li.dataset.ck;S.ck[k]=!S.ck[k];save();renderCheck()});
+$('#ckBody').addEventListener('click',e=>{if(e.target.closest('#gBackGuide')){S.showList=0;renderCheck();return}const li=e.target.closest('[data-ck]');if(!li)return;const k=li.dataset.ck;S.ck[k]=!S.ck[k];save();renderCheck()});
 $('#ckReset').onclick=()=>{S.ck={};save();renderCheck()};
 $('#infoBody').addEventListener('click',e=>{
   let b;if(b=e.target.closest('[data-take]')){const s=b.dataset.take;const a=atisOf(s==='dep'?F().dep:F().arr,s);if(!a)return;
