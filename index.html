@@ -85,7 +85,7 @@ a{color:var(--c)}
 .r.other .i{color:#a9b6c5}
 .r.x .i,.r.x .v{color:var(--mut);text-decoration:line-through}
 .note{font-size:11px;color:var(--mut);margin:-3px 0 3px 32px;line-height:1.4}
-.call{font-size:13px;color:#9fb0c3;font-style:italic;padding:4px 0 4px 32px;line-height:1.4}
+.call{font-size:15px;color:#b8c6d6;padding:7px 10px;margin:5px 0 5px 26px;border-left:3px solid #2c3a4c;background:#0f1722;border-radius:4px;line-height:1.4}.call b{display:inline-block;min-width:32px;font-size:11px;color:#6f8093;letter-spacing:.5px}.call.me{border-left-color:var(--c);color:#fff;font-weight:600}.call.me b{color:var(--c)}.call i{display:block;font-size:12px;color:#7d8da0;font-weight:400;font-style:normal;margin:2px 0 0 32px}
 .call b{font-style:normal;font-size:10px;color:var(--mut);font-weight:400;margin-right:6px}
 .sec{font-size:11px;letter-spacing:.07em;color:var(--a);margin:18px 0 4px;padding-top:14px;border-top:1px solid var(--line)}
 .sec small{color:var(--mut);letter-spacing:0;margin-left:6px}
@@ -710,7 +710,7 @@ PF|THRUST LEVERS|FLX or TOGA
 PM|CHRONO|START
 @PF|MAN FLEX {flex}, SRS, runway, A/THR blue.
 PM|TAKEOFF N1|CHECK bis 80 kt
-@PM|Thrust set.
+@PM|Checked. Thrust set.
 @PM|One hundred knots.
 @PF|Checked.
 @PM|V one.
@@ -720,12 +720,20 @@ PF|ROTATION|ca. 3°/s auf ca. 15° Pitch, dann SRS folgen
 @PF|Gear up.
 PM|LANDING GEAR|UP
 @PM|Gear up.
-PF|AUTOPILOT|ON (über 100 ft AGL)|"Autopilot one on" ansagen
-PF|THRUST LEVERS|CL bei LVR CLB blinkend (Thrust Reduction Altitude)
+PF|AUTOPILOT|ON (über 100 ft AGL)
+@PF|Autopilot one on.
+@PM|Checked.
+@PM|LVR CLB.|FMA blinkt bei Thrust Reduction Altitude
+@PF|Climb thrust.
+PF|THRUST LEVERS|CL (Climb-Raste)
+@PF|THR CLB, CLB, NAV, A/THR.|weiß unter A/THR = aktiv
+@PM|Checked.
 PM|PACKS 1 + 2|ON (falls aus)`},
 
 {id:'atko',n:'After Takeoff',f:'abflug',t:'Acceleration Altitude',s:`
 PM|TARGET SPEED|CHECK – beschleunigt auf Climb Speed
+@PF|THR CLB, CLB, NAV.|Acceleration Altitude: Speed-Target springt hoch
+@PM|Checked.
 @PF|Flaps one.
 @PM|Speed checked, flaps one.
 PM|FLAPS|1 (bei F-Speed, falls vorher höher)
@@ -764,8 +772,9 @@ PM|NAVAIDS|CLEAR manually tuned
 PM|OPT / MAX ALT|CHECK`},
 
 {id:'cruise',n:'Cruise',f:'reise',t:'Reiseflughöhe {crz} erreicht',s:`
+@PF|ALT CRZ.|beim Level-off auf Reiseflughöhe
+@PM|Checked.
 PM|TOC|Fuel und Zeit notieren
-PF|FMA|CHECK
 PF|ECAM MEMO + SD pages|REVIEW|ENG, BLEED, PRESS, ELEC, HYD, FUEL, COND, F/CTL
 PF|PRESSURIZATION|CHECK
 PF|FLIGHT PROGRESS|MONITOR · Fuel alle 30 min prüfen
@@ -792,11 +801,15 @@ CM|TERR ON ND|AS RQRD
 PM|ENG ANTI ICE|AS RQRD
 PM|DESCENT CLEARANCE|OBTAIN
 PF|FCU ALT|SET cleared altitude
+@PF|… blue.|Jede neue Höhe am FCU ansagen, z. B. „FL120 blue“
+@PM|Checked.
 @PF|Approach checklist, down to the line.
 #ap:down`},
 
 {id:'tod',n:'Top of Descent',f:'reise',t:'Am TOD (ca. {tod} NM vor dem Ziel)',s:`
 PF|FCU ALT|PUSH – DES mode
+@PF|THR IDLE, DES, NAV.
+@PM|Checked.
 PF|DESCENT|MONITOR · VDEV / PROG|Speedbrakes nur bei Bedarf
 PM|ECAM STATUS|CHECK
 PM|SEAT BELTS|AS RQRD`},
@@ -823,6 +836,8 @@ CM|BARO REF (EFIS + ISIS)|QNH {qnhArr} · CROSS CHECK
 
 {id:'iapp',n:'Initial Approach',f:'anflug',t:'Ca. 15–20 NM vor der Landung',s:`
 CM|APPROACH PHASE|CHECK / ACTIVATE|Im NAV automatisch bei DECEL, sonst 15 NM vorher aktivieren
+@PF|Approach phase activated.
+@PM|Checked.
 PF|MANAGED SPEED|CHECK
 CM|LS pb|CHECK ON
 PM|AUTO BRK|CHECK SET
@@ -834,8 +849,16 @@ PM|CABIN CREW|„Cabin crew, take your seats for landing"`},
 @PM|Speed checked, flaps one.
 PM|FLAPS|1 (Green Dot, ca. 3 NM vor dem Endanflug)
 PF|APPR pb|PRESS (wenn cleared for ILS)
+@PF|G/S blue, LOC blue.|bei RNAV: „FINAL blue“
+@PM|Checked.
 PF|AP 2|ON (beide APs)
-PF|LOC / G/S|CHECK armed, then captured|FMA ansagen: „LOC star" / „G/S star"
+@PF|Autopilot two on.
+@PF|LOC star.
+@PM|Checked.
+@PF|LOC.
+@PF|G/S star.
+@PM|Checked.
+@PF|G/S.|bei RNAV: „FINAL APP“
 PF|GO AROUND ALTITUDE|SET (FCU)
 @PF|Flaps two.
 @PM|Speed checked, flaps two.
@@ -869,11 +892,16 @@ PF|LAND mode (Autoland)|CHECK at 350 ft RA|Nur bei Autoland
 @PM|One hundred above.
 @PM|Minimum.
 @PF|Continue.
+@PF|LAND green.|ca. 350 ft RA, nur Autoland
+@PM|Checked.
 PF|FLARE|ca. 30 ft
+@PF|FLARE.|nur Autoland
 PF|THRUST LEVERS|IDLE bei „RETARD"
 PF|DEROTATION|INITIATE
 PF|REVERSERS|REV MAX or REV IDLE
-@PM|Spoilers. Reverse green. Decel.
+@PM|Spoilers.
+@PM|Reverse green.
+@PM|Decel.
 @PM|Seventy knots.
 PF|THRUST LEVERS|REV IDLE
 PF|REVERSERS|STOW at taxi speed
@@ -885,12 +913,16 @@ PF|THRUST LEVERS|TOGA
 PF|ROTATION|ca. 15°, dann SRS
 @PF|Go around, flaps.
 PM|FLAPS|eine Stufe einfahren
-PF|FMA|CHECK / ANNOUNCE (MAN TOGA, SRS, GA TRK)
+@PF|MAN TOGA, SRS, GA TRK, A/THR blue.
+@PM|Checked.
 @PM|Positive climb.
 @PF|Gear up.
 PM|LANDING GEAR|UP
 PF|NAV or HDG · AP|AS RQRD
+@PM|LVR CLB.
 PF|THRUST LEVERS|CL at thrust reduction altitude
+@PF|THR CLB, … A/THR.
+@PM|Checked.
 @PF|Flaps one.
 PM|FLAPS|1 at F speed
 @PF|Flaps zero.
@@ -983,7 +1015,7 @@ function steps(ph){
     line=line.trim();if(!line)return;let x=false;
     if(line[0]==='~'){x=true;line=line.slice(1)}
     if(x&&S.set.detail==='kurz')return;
-    if(line[0]==='@'){const i=line.indexOf('|');out.push({k:'call',r:line.slice(1,i),t:line.slice(i+1)});return}
+    if(line[0]==='@'){const p=line.slice(1).split('|');out.push({k:'call',r:p[0],t:p[1],n:p[2]||''});return}
     if(line[0]==='#'){const[id,part]=line.slice(1).split(':');const c=CKMAP[id];if(!c)return;
       const li=c.it.indexOf('LINE');let items=c.it.map((it,i)=>[it,i]).filter(([it])=>it!=='LINE');
       if(part==='down'&&li>=0)items=items.filter(([_,i])=>i<li);
@@ -1024,10 +1056,10 @@ function renderCheck(){
   }else{
     steps(pg.p).forEach((st,j)=>{const key=pg.id+':'+j;
       if(st.k==='do'){const w=who(st.r);h+=rowDo(fillG(st.i),fillG(st.s),key,w.mine&&!['CM','BOTH'].includes(st.r)?'':(st.r==='CM'||st.r==='BOTH'?'':st.r),S.set.detail==='voll'?fillG(st.n):'',!w.mine)}
-      else if(st.k==='call')h+=`<div class="call"><b>${esc(st.r)}</b>„${esc(fillG(st.t))}“</div>`;
+      else if(st.k==='call')h+=`<div class="call${who(st.r).mine?' me':''}"><b>${esc(st.r)}</b>„${esc(fillG(st.t))}“${st.n&&S.set.detail==='voll'?`<i>${esc(st.n)}</i>`:''}</div>`;
       else if(st.k==='clh')h+=`<div class="sec">${esc(st.n.toUpperCase())} CHECKLIST<small>${st.part==='down'?'bis zur Linie':st.part==='below'?'unter der Linie':''}</small></div>`;
       else if(st.k==='cl')h+=rowDo(st.c.toUpperCase(),fillG(st.v),key,'',st.sub);
-      else if(st.k==='cle')h+=`<div class="call"><b>PM</b>„${esc(st.n)} checklist ${st.part==='down'?'down to the line':'complete'}.“</div>`;
+      else if(st.k==='cle')h+=`<div class="call${who('PM').mine?' me':''}"><b>PM</b>„${esc(st.n)} checklist ${st.part==='down'?'down to the line':'complete'}.“</div>`;
       else if(st.k==='funk')h+=`<button class="flink" data-gfunk="${esc(st.fp)}|${esc(st.rq)}">Funk · ${esc(st.label)} →</button>`;
     });
     if(['final','land'].includes(pg.id))h+=`<button class="flink" style="color:var(--r)" id="gGA">Go Around →</button>`;
