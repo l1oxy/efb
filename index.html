@@ -2,78 +2,585 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>EFB Verbindungstest</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a1018">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>EFB · Bordcomputer</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
-:root{--bg:#0d1520;--panel:#152233;--line:#24364d;--ink:#e6eef7;--dim:#8ea3bb;--ok:#3ddc84;--bad:#ff5c5c;--wait:#ffc940}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;padding:24px max(4vw,16px)}
-h1{font-size:28px;margin:0 0 4px}
-p.sub{color:var(--dim);margin:0 0 20px}
-.row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
-input{flex:1 1 220px;font-size:16px;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
-button{font-size:16px;padding:12px 20px;border-radius:10px;border:0;background:#2f7de1;color:#fff;font-weight:600;min-height:44px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
-.head{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.name{font-weight:600}
-.st{font-weight:700;font-size:14px;padding:4px 10px;border-radius:99px;background:#0003}
-.st.ok{color:var(--ok)}.st.bad{color:var(--bad)}.st.wait{color:var(--wait)}
-pre{white-space:pre-wrap;word-break:break-word;color:var(--dim);font-size:13px;margin:10px 0 0}
+/* VOICE: glass cockpit, ruhig, präzise
+   IDEA: das Display einer Airbus-MCDU/ECAM – grün = gesetzt, amber = fehlt, cyan = wählbar
+   PICTURE: der Funk-Leitfaden selbst, Bausteine als Chips
+   COLOUR and TYPE: Nachtblau, ECAM-Grün/Amber/Cyan, Weiß; B612 (die Airbus-Cockpitschrift)
+   LAYOUT: Kopfzeile, Inhalt, Tabs unten für den Daumen */
+:root{--bg:#0a1018;--p1:#111b27;--p2:#17253a;--line:#243650;--ink:#e8f0f8;--dim:#8aa0b8;--g:#3fe08a;--a:#ffb020;--c:#3cc8ff;--r:#ff5a5a;--w:#fff}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 "B612",system-ui,sans-serif;overflow-x:clip}
+.mono{font-family:"B612 Mono",ui-monospace,monospace}
+button{font:inherit;color:inherit;cursor:pointer}
+header{position:sticky;top:0;z-index:20;background:#0a1018ee;backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:calc(8px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-left)) 8px;display:flex;align-items:center;gap:12px}
+header .cs{font-weight:700;font-size:20px;color:var(--g)}
+header .rt{color:var(--dim);font-size:14px;flex:1}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--dim);flex:none}
+.dot.on{background:var(--g)}.dot.err{background:var(--r)}
+#sync{font-size:12px;color:var(--dim)}
+main{padding:14px max(16px,env(safe-area-inset-left)) calc(150px + env(safe-area-inset-bottom));max-width:1100px;margin:0 auto}
+nav{position:fixed;bottom:0;left:0;right:0;z-index:30;background:#0d1622;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:env(safe-area-inset-bottom)}
+nav button{background:none;border:0;padding:12px 4px 10px;font-size:13px;color:var(--dim);display:flex;flex-direction:column;align-items:center;gap:3px;min-height:56px}
+nav button svg{width:22px;height:22px}
+nav button.act{color:var(--c)}
+section.tab{display:none}section.tab.act{display:block}
+h2{font-size:22px;margin:6px 0 12px}
+h3{font-size:16px;margin:0 0 8px;color:var(--dim);font-weight:400}
+.card{background:var(--p1);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--dim)}
+input,select,textarea{font:16px "B612 Mono",monospace;background:var(--p2);color:var(--g);border:1px solid var(--line);border-radius:10px;padding:10px;width:100%;text-transform:uppercase}
+input:placeholder-shown{color:var(--a)}
+input:focus,textarea:focus{outline:2px solid var(--c);outline-offset:1px}
+textarea{min-height:70px;resize:vertical}
+.btn{background:var(--c);color:#04121c;border:0;border-radius:10px;padding:11px 18px;font-weight:700;min-height:44px}
+.btn.ghost{background:transparent;color:var(--c);border:1px solid var(--c)}
+.btn.warn{background:transparent;color:var(--r);border:1px solid var(--r)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.msg{font-size:14px;color:var(--dim);margin-top:8px}
+.msg.err{color:var(--r)}.msg.ok{color:var(--g)}
+.phases{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;position:sticky;top:58px;z-index:10;background:var(--bg);padding-top:4px}
+.phases button{flex:1 0 auto;background:var(--p1);border:1px solid var(--line);border-radius:99px;padding:10px 16px;color:var(--dim);min-height:44px}
+.phases button.act{background:var(--c);color:#04121c;border-color:var(--c);font-weight:700}
+.chip{display:inline-block;border-radius:7px;padding:1px 7px;margin:1px 0;font-family:"B612 Mono",monospace;font-size:.95em;border:1px solid transparent;cursor:pointer}
+.chip.ok{color:var(--g);background:#3fe08a14;border-color:#3fe08a40}
+.chip.miss{color:var(--a);background:#ffb02014;border-color:#ffb02060}
+.chip.fix{color:var(--w);background:#ffffff10}
+.say{font-size:19px;line-height:1.7}
+.sp{display:none;color:var(--c);font-size:14px;margin-top:6px;font-style:italic}
+.show-sp .sp{display:block}
+.lbl{font-size:12px;color:var(--dim);margin:10px 0 2px;letter-spacing:.02em}
+.atc{color:var(--dim);font-size:16px;line-height:1.6}
+.rb{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.rb span{background:var(--p2);border:1px solid var(--line);border-radius:99px;padding:3px 10px;font-size:13px;color:var(--ink)}
+.stn{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.stn:first-of-type{border-top:0}
+.stn .role{width:74px;color:var(--dim);font-size:13px;flex:none}
+.stn .who{flex:1}
+.stn .fq{font-family:"B612 Mono",monospace;color:var(--g);font-size:20px}
+.stn .fq.off{color:var(--a);font-size:15px}
+.reqs{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:12px}
+.reqs button{background:var(--p2);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:left;min-height:52px}
+.reqs button.act{border-color:var(--c);color:var(--c)}
+.opts{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px}
+.opts button{background:var(--p2);border:1px solid var(--line);border-radius:10px;padding:9px 13px;min-height:44px;font-family:"B612 Mono",monospace}
+.opts button.sel{border-color:var(--g);color:var(--g);background:#3fe08a18}
+.opts button.plan::after{content:" · geplant";font-family:"B612";font-size:12px;color:var(--dim)}
+.warnbox{border:1px solid var(--a);color:var(--a);border-radius:10px;padding:8px 12px;font-size:14px;margin-top:10px}
+.quick{position:fixed;left:0;right:0;bottom:calc(57px + env(safe-area-inset-bottom));z-index:25;display:flex;gap:6px;padding:8px max(12px,env(safe-area-inset-left));background:#0a1018f2;border-top:1px solid var(--line);overflow-x:auto}
+.quick button{flex:1 0 auto;background:var(--p2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:14px;min-height:42px}
+.quick button.em{color:var(--r);border-color:#ff5a5a70}
+.quick.hide{display:none}
+.ck h4{margin:0;font-size:16px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.ck .prog{font-size:13px;color:var(--dim)}
+.ck.done h4{color:var(--g)}
+.ck ul{list-style:none;margin:10px 0 0;padding:0}
+.ck li{display:flex;justify-content:space-between;gap:12px;padding:11px 4px;border-top:1px dashed var(--line);cursor:pointer;min-height:44px;align-items:center}
+.ck li .v{font-family:"B612 Mono",monospace;color:var(--c);text-align:right}
+.ck li.on{color:var(--dim)}.ck li.on .v{color:var(--g)}
+.ck li.on .i::before{content:"✓ ";color:var(--g)}
+.ck li small{display:block;font-size:12px;color:var(--dim);margin-top:2px;text-transform:none}
+.ck li.line{justify-content:center;cursor:default;min-height:0;padding:6px;font-size:12px;color:var(--a);border-top:2px solid var(--a);text-transform:uppercase;letter-spacing:.04em}
+.ck.em{border-color:#ff5a5a70}.ck.em h4{color:var(--r)}
+.ck li .i{font-family:"B612 Mono",monospace;font-size:15px}
+details.ck summary{list-style:none;cursor:pointer}details.ck summary::-webkit-details-marker{display:none}
+#map{height:min(62vh,560px);border-radius:14px;border:1px solid var(--line);background:#0d1622}
+.leaflet-container{font-family:"B612",sans-serif;background:#0d1622}
+.wplbl{background:none;border:0;box-shadow:none;color:var(--c);font:11px "B612 Mono",monospace;padding:0}
+.wplbl::before{display:none}
+.met .raw{font-family:"B612 Mono",monospace;color:var(--g);font-size:14px;word-break:break-word}
+.met ul{margin:8px 0 0;padding-left:18px;color:var(--ink)}
+.atis{font-family:"B612 Mono",monospace;font-size:13px;color:var(--dim);white-space:pre-wrap;margin-top:6px}
+.big{font-size:28px;font-family:"B612 Mono",monospace;color:var(--g)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.modal{position:fixed;inset:0;background:#000a;z-index:50;display:none;align-items:center;justify-content:center;padding:16px}
+.modal.on{display:flex}
+.modal .box{background:var(--p1);border:1px solid var(--c);border-radius:16px;padding:18px;width:min(420px,100%)}
+.modal .box h3{color:var(--ink);font-size:18px}
+.empty{color:var(--dim);font-size:15px}
+a{color:var(--c)}
+@media(max-width:600px){header .rt{font-size:12px}.say{font-size:17px}.stn .role{width:58px}}
+@media(prefers-reduced-motion:no-preference){.card{animation:in .25s ease-out}@keyframes in{from{opacity:0;transform:translateY(4px)}}}
 </style>
 </head>
 <body>
-<h1>Verbindungstest</h1>
-<p class="sub">Prüft, ob dein Bordcomputer von hier aus SimBrief, VATSIM und Wetterdaten erreicht.</p>
-<div class="row">
-  <input id="user" value="OnboardTransponder595" aria-label="SimBrief-Benutzername">
-  <input id="icao" value="EDDF" aria-label="Flughafen für METAR" style="flex:0 1 110px">
-  <button id="go">Testen</button>
+<header>
+  <div class="cs mono" id="hCs">EFB</div>
+  <div class="rt mono" id="hRt">Kein Flug geladen</div>
+  <span id="sync">–</span><span class="dot" id="hDot"></span>
+</header>
+
+<main>
+<!-- FLUG -->
+<section class="tab" id="t-flug">
+  <h2>Flug</h2>
+  <div class="card">
+    <h3>SimBrief</h3>
+    <div class="row">
+      <input id="sbUser" style="flex:1 1 220px;text-transform:none" placeholder="SimBrief-Benutzername" autocomplete="off">
+      <button class="btn" id="sbLoad">Letzten Plan laden</button>
+    </div>
+    <div class="msg" id="sbMsg">Lädt deinen zuletzt erstellten SimBrief-Flugplan.</div>
+  </div>
+  <div class="card">
+    <h3>Flugdaten <span style="font-size:12px">· gelb = noch leer, alles änderbar</span></h3>
+    <div class="grid" id="fGrid"></div>
+    <label class="f" style="margin-top:10px">Route<textarea id="f-route" data-k="route"></textarea></label>
+  </div>
+  <div class="row"><button class="btn warn" id="newFlight">Neuer Flug</button></div>
+</section>
+
+<!-- FUNK -->
+<section class="tab" id="t-funk">
+  <div class="phases" id="phases"></div>
+  <div id="funkBody"></div>
+</section>
+
+<!-- CHECKLISTEN -->
+<section class="tab" id="t-check">
+  <div class="row" style="justify-content:space-between"><h2>Checklisten</h2><button class="btn ghost" id="ckReset">Alle zurücksetzen</button></div>
+  <div id="ckBody"></div>
+  <p class="msg">A320 Normal Checklist. Werte in Cyan kommen aus deinen Flugdaten, ____ trägst du unter Flug ein. Tippe einen Punkt zum Abhaken.</p>
+</section>
+
+<!-- KARTE -->
+<section class="tab" id="t-karte">
+  <h2>Route</h2>
+  <div id="map"></div>
+  <div class="card" style="margin-top:12px"><h3>Online auf deiner Strecke</h3><div id="onlineList" class="empty">Noch keine VATSIM-Daten.</div></div>
+</section>
+
+<!-- INFO -->
+<section class="tab" id="t-info">
+  <h2>Wetter & ATIS</h2>
+  <div class="two" id="infoBody"></div>
+  <div class="card"><h3>Karten</h3><a href="https://charts.navigraph.com/" target="_blank" rel="noopener" class="btn ghost" style="display:inline-block;text-decoration:none">Navigraph Charts öffnen</a></div>
+</section>
+</main>
+
+<div class="quick hide" id="quick">
+  <button data-q="sayagain">Say again</button>
+  <button data-q="standby">Standby</button>
+  <button data-q="unable">Unable</button>
+  <button data-q="sp" id="spBtn">Aussprache</button>
+  <button data-q="em" class="em">Notfall</button>
 </div>
-<div id="out"></div>
+
+<nav id="nav">
+  <button data-t="flug"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 16l20-6-20-6 4 6-4 6z"/></svg>Flug</button>
+  <button data-t="funk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="7" y="7" width="10" height="15" rx="2"/><path d="M12 7V2M10 12h4M10 16h4"/></svg>Funk</button>
+  <button data-t="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 6h11M9 12h11M9 18h11M3 6l1.5 1.5L7 5M3 12l1.5 1.5L7 11M3 18l1.5 1.5L7 17"/></svg>Checklisten</button>
+  <button data-t="karte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg>Karte</button>
+  <button data-t="info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 15a4 4 0 014-4 5 5 0 019.6 1.5A3.5 3.5 0 1117 19H8a4 4 0 01-4-4z"/></svg>Wetter</button>
+</nav>
+
+<div class="modal" id="modal"><div class="box">
+  <h3 id="mTitle">Wert</h3>
+  <input id="mInput" autocomplete="off">
+  <div class="opts" id="mOpts"></div>
+  <div class="row" style="margin-top:12px;justify-content:flex-end">
+    <button class="btn ghost" id="mCancel">Abbrechen</button><button class="btn" id="mOk">OK</button>
+  </div>
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 {
-const out=document.getElementById('out');
-const tests=[
-  {id:'sb',name:'SimBrief (letzter Flugplan)',run:async()=>{
-    const u=encodeURIComponent(document.getElementById('user').value.trim());
-    const r=await fetch('https://www.simbrief.com/api/xml.fetcher.php?json=1&username='+u);
-    const j=await r.json();
+/* ---------- Grundlagen ---------- */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const KEY='efb.v1';
+const blank=()=>({cs:'',type:'',dep:'',arr:'',altn:'',gate:'',arrGate:'',crz:'',route:'',sid:'',star:'',exitFix:'',depRwy:'',arrRwy:'',squawk:'',atisDep:'',atisArr:'',qnhDep:'',qnhArr:'',clearedAlt:'',passing:'',nextFix:'',hdg:'',appType:'ILS',climb:'',fuel:'',trim:'',flaps:'',vspeeds:'',mins:'',clrType:'sid',wps:[],depPos:null,arrPos:null});
+let S={user:'OnboardTransponder595',f:blank(),phase:'boden',mem:{},ck:{},tab:'flug',req:null,sp:false};
+try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s)S={...S,...s,f:{...blank(),...s.f}}}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const F=()=>S.f;
+
+/* ---------- Funk-Aussprache ---------- */
+const NATO={A:'Alfa',B:'Bravo',C:'Charlie',D:'Delta',E:'Echo',F:'Foxtrot',G:'Golf',H:'Hotel',I:'India',J:'Juliett',K:'Kilo',L:'Lima',M:'Mike',N:'November',O:'Oscar',P:'Papa',Q:'Quebec',R:'Romeo',S:'Sierra',T:'Tango',U:'Uniform',V:'Victor',W:'Whiskey',X:'X-ray',Y:'Yankee',Z:'Zulu'};
+const DIG=['zero','one','two','tree','four','fife','six','seven','eight','niner'];
+const AIRL={DLH:'Lufthansa',EWG:'Eurowings',CFG:'Condor',BAW:'Speedbird',EZY:'Easy',EJU:'Alpine',RYR:'Ryanair',KLM:'KLM',AFR:'Airfrance',SWR:'Swiss',AUA:'Austrian',UAE:'Emirates',THY:'Turkish',SAS:'Scandinavian',WZZ:'Wizz Air',TUI:'Tuifly',BEL:'Beeline',LOT:'Lot',IBE:'Iberia',VLG:'Vueling',DAL:'Delta',UAL:'United',AAL:'American',QTR:'Qatari',ETD:'Etihad',SIA:'Singapore',ACA:'Air Canada',FIN:'Finnair',ICE:'Iceair',NAX:'Nor Shuttle',VOE:'Volotea',PGT:'Sunturk',GWI:'Germanwings',CLH:'Hansaline',DLA:'Dolomiti',SXS:'Sunexpress',MSR:'Egyptair',AEE:'Aegean'};
+const CITY={EDDB:'Berlin',EDDF:'Frankfurt',EDDM:'Munich',EDDH:'Hamburg',EDDL:'Düsseldorf',EDDK:'Cologne',EDDS:'Stuttgart',EDDN:'Nuremberg',EDDW:'Bremen',EDDV:'Hannover',EDDP:'Leipzig',EDDC:'Dresden',EDDR:'Saarbrücken',EDDE:'Erfurt',EDLW:'Dortmund',EDJA:'Memmingen',EDFH:'Hahn',EDNY:'Friedrichshafen',EGLL:'Heathrow',EGKK:'Gatwick',EGSS:'Stansted',EHAM:'Schiphol',LFPG:'De Gaulle',LOWW:'Wien',LSZH:'Zurich',LSGG:'Geneva',EKCH:'Kastrup',ESSA:'Arlanda',ENGM:'Gardermoen',EPWA:'Okecie',LKPR:'Ruzyne',LIRF:'Fiumicino',LEMD:'Barajas',LEPA:'Palma',LPPT:'Lisboa',EBBR:'Brussels',EIDW:'Dublin',LGAV:'Athinai',LTFM:'Istanbul',EDWW:'Bremen',EDGG:'Langen',EDMM:'Munich',EDUU:'Rhein',EDYY:'Maastricht'};
+const sp1=c=>/\d/.test(c)?DIG[+c]:(NATO[c]||c);
+const spell=s=>String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'').split('').map(sp1).join(' ');
+const digits=s=>String(s||'').replace(/\D/g,'').split('').map(d=>DIG[+d]).join(' ');
+const csSp=cs=>{cs=String(cs||'').toUpperCase();const m=cs.match(/^([A-Z]{3})(\w+)$/);return m&&AIRL[m[1]]?AIRL[m[1]]+' '+spell(m[2]):spell(cs)};
+const rwySp=r=>{const m=String(r||'').toUpperCase().match(/^(\d{1,2})([LRC]?)$/);if(!m)return spell(r);return digits(m[1])+({L:' left',R:' right',C:' center'}[m[2]]||'')};
+const freqSp=f=>{let[a,b='']=String(f||'').split('.');b=b.replace(/0+$/,'')||'0';return digits(a)+' decimal '+digits(b)};
+const thou=n=>{const t=Math.floor(n/1000),h=Math.round((n%1000)/100);return (t?digits(t)+' thousand':'')+(h?' '+DIG[h]+' hundred':'')};
+const altSp=v=>{v=String(v||'').toUpperCase().trim();if(!v)return'';if(v.startsWith('FL'))return'flight level '+digits(v);const n=parseInt(v.replace(/\D/g,''));return isNaN(n)?v.toLowerCase():thou(n)+' feet'};
+const sidSp=s=>{const m=String(s||'').toUpperCase().match(/^([A-Z]+)(\d)([A-Z]{1,2})$/);if(!m)return String(s||'').toLowerCase();let n=m[1];const ef=(F().exitFix||'').toUpperCase();if(ef.startsWith(n))n=ef;else if(F().star&&s===F().star)n=m[1];return n.charAt(0)+n.slice(1).toLowerCase()+' '+DIG[+m[2]]+' '+m[3].split('').map(c=>NATO[c]).join(' ')};
+const aptSp=i=>CITY[String(i||'').toUpperCase()]||spell(i);
+const fixSp=f=>{f=String(f||'');return f.length>3?f.charAt(0)+f.slice(1).toLowerCase():spell(f)};
+const lvl=v=>{v=String(v||'').toUpperCase().trim();if(/^\d{3}$/.test(v))return'FL'+v;if(/^FL\d{2,3}$/.test(v))return v;return v};
+
+/* Felder: Beschriftung, Aussprache, Eingabeart, Vorschläge */
+const K={
+ cs:{l:'Callsign',sp:csSp},type:{l:'Flugzeug'},dep:{l:'Abflug',sp:aptSp},arr:{l:'Ziel',sp:aptSp},altn:{l:'Ausweich'},
+ gate:{l:'Stand (Abflug)',sp:spell},arrGate:{l:'Stand (Ziel)',sp:spell},crz:{l:'Reiseflughöhe',sp:altSp,o:['FL280','FL320','FL360']},
+ sid:{l:'SID',sp:sidSp},star:{l:'STAR',sp:sidSp},exitFix:{l:'SID-Endpunkt',sp:fixSp},depRwy:{l:'Piste Abflug',sp:rwySp},arrRwy:{l:'Piste Ziel',sp:rwySp},
+ squawk:{l:'Squawk',sp:digits,num:1},atisDep:{l:'ATIS Abflug',sp:spell},atisArr:{l:'ATIS Ziel',sp:spell},qnhDep:{l:'QNH Abflug',sp:digits,num:1},qnhArr:{l:'QNH Ziel',sp:digits,num:1},
+ clearedAlt:{l:'Freigegebene Höhe',sp:altSp,o:['5000','FL100','FL150','FL240']},passing:{l:'Passing (aktuelle Höhe)',sp:altSp,o:['3000','5000','FL80','FL120']},
+ nextFix:{l:'Nächster Wegpunkt',sp:fixSp},hdg:{l:'Heading',sp:digits,num:1,o:['090','180','270','360']},appType:{l:'Anflugart',sp:s=>String(s||'').replace('ILS','I L S').replace('RNAV','R-nav').toLowerCase(),o:['ILS','RNAV','VISUAL','LOC']},
+ fuel:{l:'Fuel (Block)'},flaps:{l:'Flaps (CONF)',o:['1','1+F','2','3']},vspeeds:{l:'V1/VR/V2/FLX'},trim:{l:'Pitch trim'},mins:{l:'MDA/DH'},
+ climb:{l:'Steigen',sp:s=>s==='VIA SID'?'climb via SID':'climb '+altSp(s)}
+};
+const FORM=['cs','type','dep','arr','altn','gate','arrGate','crz','sid','exitFix','star','depRwy','arrRwy','squawk','atisDep','atisArr','qnhDep','qnhArr','fuel','flaps','vspeeds','trim','mins'];
+
+/* ---------- VATSIM ---------- */
+let V={ctl:[],atis:[],t:null,err:false},MET={};
+const FAC={2:'DEL',3:'GND',4:'TWR',5:'APP',6:'CTR',1:'FSS'};
+const ROLEWORD={DEL:'Delivery',GND:'Ground',TWR:'Tower',APP:'Approach',DEP:'Departure',CTR:'Radar',FSS:'Information'};
+const CHAIN={DEL:[2,3,4,5,6],GND:[3,4,5,6],TWR:[4,5,6],DEP:[5,6],APP:[5,6],CTR:[6,1]};
+async function pullVatsim(){
+  try{const r=await fetch('https://data.vatsim.net/v3/vatsim-data.json',{cache:'no-store'});const j=await r.json();
+    V.ctl=(j.controllers||[]).filter(c=>c.facility>0&&c.frequency!=='199.998');V.atis=j.atis||[];V.t=new Date();V.err=false;
+  }catch(e){V.err=true}
+  head();if(S.tab==='funk')renderFunk();if(S.tab==='karte')renderOnline();if(S.tab==='info')renderInfo();
+}
+const pre=c=>c.callsign.split('_')[0];
+/* Wer deckt eine Rolle an einem Platz ab (VATSIM top-down) */
+function cover(role,icao){
+  icao=(icao||'').toUpperCase();if(!icao)return null;
+  for(const fac of CHAIN[role]){
+    const list=V.ctl.filter(c=>c.facility===fac&&(fac>=6||fac===1?pre(c).slice(0,2)===icao.slice(0,2):pre(c)===icao));
+    if(list.length){const c=list[0];const r=FAC[fac]==='APP'&&role==='DEP'?'DEP':FAC[fac];
+      const nm=(fac>=6||fac===1)?(CITY[pre(c)]||pre(c)):(CITY[icao]||icao);
+      return{cs:c.callsign,freq:c.frequency,role:r,spoken:nm+' '+ROLEWORD[r],covering:fac!==CHAIN[role][0]}}
+  }return null;
+}
+function atisOf(icao,kind){
+  icao=(icao||'').toUpperCase();const a=V.atis.filter(x=>pre(x)===icao);
+  const pick=a.find(x=>x.callsign.includes(kind==='dep'?'_D_':'_A_'))||a.find(x=>!/_[AD]_/.test(x.callsign))||a[0];
+  if(!pick)return null;const txt=(pick.text_atis||[]).join(' ');
+  const rw=txt.match(/(?:RUNWAY|RWY)S?\s*(?:IN USE\s*)?(?:FOR\s+(?:DEPARTURE|LANDING|ARRIVAL)S?\s*)?(\d{2}\s?[LRC]?)/i);
+  const q=txt.match(/QNH\s*(\d{3,4})/i)||txt.match(/\bQ(\d{4})\b/);
+  return{cs:pick.callsign,freq:pick.frequency,code:pick.atis_code||'',rwy:rw?rw[1].replace(/\s/g,'').toUpperCase():'',qnh:q?q[1]:'',txt};
+}
+
+/* ---------- METAR ---------- */
+async function pullMetar(){
+  const ids=[...new Set([F().dep,F().arr,F().altn].filter(Boolean).map(s=>s.toUpperCase()))];
+  for(const id of ids){try{const t=(await(await fetch('https://metar.vatsim.net/'+id,{cache:'no-store'})).text()).trim();if(t)MET[id]=t}catch(e){}}
+  if(S.tab==='info')renderInfo();
+}
+const WX={RA:'Regen',SN:'Schnee',DZ:'Niesel',TS:'Gewitter',FG:'Nebel',BR:'Dunst',HZ:'Trübung',SH:'Schauer',GR:'Hagel',FZ:'gefrierend'};
+function decode(m,rwy){
+  const o=[];let w=m.match(/\b(\d{3}|VRB)(\d{2,3})(?:G(\d{2,3}))?KT\b/);
+  if(w){o.push(`Wind ${w[1]==='VRB'?'umlaufend':w[1]+'°'} mit ${+w[2]} kt${w[3]?', Böen '+ +w[3]+' kt':''}`);
+    const r=String(rwy||'').match(/^(\d{1,2})/);if(r&&w[1]!=='VRB'){const d=(+w[1]-r[1]*10)*Math.PI/180,s=+w[2];const hw=Math.round(s*Math.cos(d)),xw=Math.round(Math.abs(s*Math.sin(d)));o.push(`Piste ${rwy}: ${hw>=0?'Gegenwind '+hw:'Rückenwind '+(-hw)} kt, Seitenwind ${xw} kt`)}}
+  if(/CAVOK/.test(m))o.push('CAVOK: Sicht über 10 km, keine Wolken unter 5000 ft');
+  else{const v=m.match(/\s(\d{4})\s/);if(v)o.push('Sicht '+(v[1]==='9999'?'über 10 km':(+v[1])+' m'))}
+  const wx=[...m.matchAll(/\s([-+]?)((?:SH|TS|FZ)?(?:RA|SN|DZ|FG|BR|HZ|GR|TS))\b/g)].map(x=>(x[1]==='-'?'leichter ':x[1]==='+'?'starker ':'')+x[2].match(/SH|TS|FZ|RA|SN|DZ|FG|BR|HZ|GR/g).map(c=>WX[c]).join(' '));if(wx.length)o.push(wx.join(', '));
+  const cl=[...m.matchAll(/\b(FEW|SCT|BKN|OVC)(\d{3})/g)].map(x=>({FEW:'wenige',SCT:'aufgelockert',BKN:'durchbrochen',OVC:'bedeckt'}[x[1]])+' '+(+x[2]*100)+' ft');if(cl.length)o.push('Wolken: '+cl.join(', '));
+  const t=m.match(/\s(M?\d{2})\/(M?\d{2})\s/);if(t)o.push(`Temperatur ${t[1].replace('M','-')} °C, Taupunkt ${t[2].replace('M','-')} °C`);
+  const q=m.match(/\bQ(\d{4})\b/);if(q)o.push('QNH '+q[1]);
+  return{o,qnh:q?q[1]:''};
+}
+
+/* ---------- SimBrief ---------- */
+const PROC=/^[A-Z]{2,5}\d[A-Z]{1,2}$/;
+async function loadSB(){
+  const u=$('#sbUser').value.trim();if(!u){msg('Bitte Benutzernamen eingeben.','err');return}
+  S.user=u;msg('Lade …');
+  try{
+    const j=await(await fetch('https://www.simbrief.com/api/xml.fetcher.php?json=1&username='+encodeURIComponent(u))).json();
     if(j.fetch&&j.fetch.status&&j.fetch.status!=='Success')throw new Error(j.fetch.status);
-    return `${j.atc?.callsign||'?'}: ${j.origin?.icao_code} → ${j.destination?.icao_code}\nFL ${j.general?.initial_altitude}  ·  ${j.aircraft?.icaocode||''}\nRoute: ${j.general?.route||''}`;
-  }},
-  {id:'vs',name:'VATSIM-Datenfeed (Lotsen online)',run:async()=>{
-    const r=await fetch('https://data.vatsim.net/v3/vatsim-data.json');
-    const j=await r.json();
-    const c=j.controllers||[];
-    return `${c.length} Lotsen und ${(j.atis||[]).length} ATIS online, ${(j.pilots||[]).length} Piloten.\nBeispiele: ${c.slice(0,5).map(x=>x.callsign+' '+x.frequency).join(', ')}`;
-  }},
-  {id:'mv',name:'METAR über VATSIM',run:async()=>{
-    const r=await fetch('https://metar.vatsim.net/'+encodeURIComponent(document.getElementById('icao').value.trim()));
-    const t=(await r.text()).trim();
-    if(!t)throw new Error('leere Antwort');
-    return t;
-  }},
-  {id:'aw',name:'METAR über aviationweather.gov (Reserve)',run:async()=>{
-    const r=await fetch('https://aviationweather.gov/api/data/metar?format=json&ids='+encodeURIComponent(document.getElementById('icao').value.trim()));
-    const j=await r.json();
-    return j[0]?.rawOb||'keine Daten';
-  }}
+    const f=blank(),g=j.general||{};
+    f.cs=(j.atc?.callsign||((g.icao_airline||'')+(g.flight_number||''))).toUpperCase();
+    f.type=j.aircraft?.icaocode||'';f.dep=j.origin?.icao_code||'';f.arr=j.destination?.icao_code||'';f.altn=j.alternate?.icao_code||'';
+    f.depRwy=j.origin?.plan_rwy||'';f.arrRwy=j.destination?.plan_rwy||'';
+    const ia=parseInt(g.initial_altitude||0);f.crz=ia?(ia>=10000?'FL'+String(Math.round(ia/100)).padStart(3,'0'):String(ia)):'';
+    f.route=g.route||'';const tk=f.route.split(/\s+/).filter(Boolean);
+    if(PROC.test(tk[0]||'')){f.sid=tk[0];f.exitFix=tk[1]||''}
+    if(PROC.test(tk[tk.length-1]||''))f.star=tk[tk.length-1];
+    let fx=j.navlog?.fix||[];if(!Array.isArray(fx))fx=[fx];
+    if(!f.sid){const s=fx.find(x=>x.is_sid_star==='1'&&PROC.test(x.via_airway||''));if(s){f.sid=s.via_airway;const last=[...fx].reverse().find(x=>x.via_airway===s.via_airway);f.exitFix=last?.ident||''}}
+    if(!f.star){const s=[...fx].reverse().find(x=>x.is_sid_star==='1'&&PROC.test(x.via_airway||''));if(s&&s.via_airway!==f.sid)f.star=s.via_airway}
+    f.wps=fx.filter(x=>x.pos_lat&&x.type!=='apt').map(x=>[+x.pos_lat,+x.pos_long,x.ident]);
+    if(j.origin?.pos_lat)f.depPos=[+j.origin.pos_lat,+j.origin.pos_long];if(j.destination?.pos_lat)f.arrPos=[+j.destination.pos_lat,+j.destination.pos_long];
+    f.clearedAlt=f.crz;f.nextFix=f.exitFix;
+    if(j.fuel?.plan_ramp)f.fuel=j.fuel.plan_ramp+' '+String(j.params?.units||'kgs').toUpperCase().replace('KGS','KG').replace('LBS','LB');
+    if(f.sid)remember(f.dep,f.sid);
+    S.f=f;S.ck={};S.phase='boden';save();renderAll();pullMetar();
+    msg(`Geladen: ${f.cs} ${f.dep} → ${f.arr} (${f.type}).`,'ok');
+  }catch(e){msg('SimBrief-Fehler: '+(e.message||e)+'. Du kannst alles auch von Hand eintragen.','err')}
+}
+const msg=(t,c)=>{const m=$('#sbMsg');m.textContent=t;m.className='msg '+(c||'')};
+function remember(apt,sid){apt=(apt||'').toUpperCase();sid=(sid||'').toUpperCase();if(!apt||!PROC.test(sid))return;const a=S.mem[apt]=S.mem[apt]||[];if(!a.includes(sid))a.push(sid);save()}
+
+/* ---------- Bausteine ---------- */
+let CTX={};
+function phrase(tpl){
+  let disp='',spk=[];
+  tpl.split(/(\{\w+\})/).forEach(part=>{
+    const m=part.match(/^\{(\w+)\}$/);
+    if(!m){disp+=esc(part);spk.push(part);return}
+    const k=m[1];
+    if(k in CTX){const v=CTX[k];disp+=`<span class="chip fix">${esc(v.d)}</span>`;spk.push(v.s);return}
+    const v=F()[k];const meta=K[k]||{l:k};
+    if(v){disp+=`<span class="chip ok" data-e="${k}">${esc(k==='climb'&&v==='VIA SID'?'climb via SID':v)}</span>`;spk.push(meta.sp?meta.sp(v):v)}
+    else{disp+=`<span class="chip miss" data-e="${k}">${esc(meta.l)}</span>`;spk.push('['+meta.l+']')}
+  });
+  return`<div class="say">${disp}</div><div class="sp">${esc(spk.join('').replace(/\s+/g,' ').replace(/\s,/g,','))}</div>`;
+}
+const rb=a=>`<div class="lbl">ZURÜCKLESEN</div><div class="rb">${a.map(x=>`<span>${esc(x)}</span>`).join('')}</div>`;
+
+/* ---------- Funk-Daten ---------- */
+const PH=[['boden','Boden'],['abflug','Abflug'],['reise','Reiseflug'],['anflug','Anflug'],['landung','Landung']];
+const STN={boden:[['DEL','dep'],['GND','dep'],['TWR','dep']],abflug:[['TWR','dep'],['DEP','dep'],['CTR','dep']],reise:[['CTR','dep'],['CTR','arr']],anflug:[['CTR','arr'],['APP','arr']],landung:[['TWR','arr'],['GND','arr']]};
+const INIT={
+ DEL:'{stn}, {cs}, stand {gate}, information {atisDep}, request IFR clearance to {arr}',
+ GND:'{stn}, {cs}, stand {gate}, request pushback',
+ TWRdep:'{stn}, {cs}, holding point runway {depRwy}, ready for departure',
+ DEP:'{stn}, {cs}, passing {passing}, climbing {clearedAlt}, {sid}',
+ CTR:'{stn}, {cs}, {clearedAlt}, direct {nextFix}',
+ APP:'{stn}, {cs}, {clearedAlt}, {star}, information {atisArr}',
+ TWRarr:'{stn}, {cs}, {appType} runway {arrRwy}',
+ GNDarr:'{stn}, {cs}, runway vacated, request taxi to stand {arrGate}'
+};
+const REQ={
+ boden:[
+  {n:'Clearance',clr:1},
+  {n:'Startup',r:'DEL',you:'{stn}, {cs}, stand {gate}, request startup',atc:'{cs}, startup approved, QNH {qnhDep}',rb:['Startup approved','QNH']},
+  {n:'Pushback',r:'GND',you:'{stn}, {cs}, stand {gate}, request pushback',atc:'{cs}, pushback approved, facing east',rb:['Pushback approved','Richtung (facing …)']},
+  {n:'Taxi',r:'GND',you:'{stn}, {cs}, request taxi',atc:'{cs}, taxi to holding point runway {depRwy} via …',rb:['Holding point','Piste','Taxi-Route','Hold short …']},
+  {n:'Intersection',r:'GND',you:'{stn}, {cs}, request intersection departure runway {depRwy}',atc:'{cs}, intersection approved, taxi via …',rb:['Intersection','Piste','Route']},
+  {n:'Ready for departure',r:'TWR',you:'{stn}, {cs}, holding point runway {depRwy}, ready for departure',atc:'{cs}, wind …, runway {depRwy}, cleared for takeoff',rb:['Line up and wait / cleared for takeoff','Piste']},
+  {n:'Andere Piste',r:'GND',you:'{stn}, {cs}, request runway …',atc:'{cs}, runway … approved, expect …',rb:['Piste','neue SID']}
+ ],
+ abflug:[
+  {n:'Erstanruf Departure',init:'DEP'},
+  {n:'Höher steigen',r:'DEP',you:'{stn}, {cs}, request climb {crz}',atc:'{cs}, climb {crz}',rb:['Flughöhe']},
+  {n:'Direct to',r:'DEP',you:'{stn}, {cs}, request direct {nextFix}',atc:'{cs}, proceed direct {nextFix}',rb:['Direct','Wegpunkt']},
+  {n:'Keine Speed-Beschränkung',r:'DEP',you:'{stn}, {cs}, request high speed climb',atc:'{cs}, no speed restrictions',rb:['No speed restrictions']},
+  {n:'Handoff erhalten',r:'DEP',you:'Contact … on …, {cs}',atc:'{cs}, contact … on …, bye bye',rb:['Station','Frequenz']}
+ ],
+ reise:[
+  {n:'Erstanruf Center',init:'CTR'},
+  {n:'Andere Flughöhe',r:'CTR',you:'{stn}, {cs}, request {clearedAlt}',atc:'{cs}, climb / descend {clearedAlt}',rb:['Flughöhe']},
+  {n:'Direct to',r:'CTR',you:'{stn}, {cs}, request direct {nextFix}',atc:'{cs}, proceed direct {nextFix}',rb:['Direct','Wegpunkt']},
+  {n:'Wetter ausweichen',r:'CTR',you:'{stn}, {cs}, request deviation 10 miles left of track due weather',atc:'{cs}, deviation approved, report back on track',rb:['Deviation','Richtung','Report back on track']},
+  {n:'Sinkflug anfragen',r:'CTR',you:'{stn}, {cs}, request descent',atc:'{cs}, descend {clearedAlt}',rb:['Flughöhe','ggf. QNH']},
+  {n:'Handoff erhalten',r:'CTR',you:'Contact … on …, {cs}',atc:'{cs}, contact … on …, bye bye',rb:['Station','Frequenz']}
+ ],
+ anflug:[
+  {n:'Erstanruf Approach',init:'APP'},
+  {n:'Anflug wünschen',r:'APP',you:'{stn}, {cs}, request {appType} approach runway {arrRwy}',atc:'{cs}, expect {appType} approach runway {arrRwy}',rb:['Anflugart','Piste']},
+  {n:'Vectors',r:'APP',you:'{stn}, {cs}, request vectors for {appType} runway {arrRwy}',atc:'{cs}, fly heading {hdg}, descend …, QNH {qnhArr}',rb:['Heading','Höhe','QNH']},
+  {n:'Established',r:'APP',you:'{stn}, {cs}, established localizer runway {arrRwy}',atc:'{cs}, contact tower on …',rb:['Station','Frequenz']},
+  {n:'Cleared approach',r:'APP',you:'Turn left heading {hdg}, cleared {appType} approach runway {arrRwy}, {cs}',atc:'{cs}, turn left heading {hdg}, cleared {appType} approach runway {arrRwy}',rb:['Heading','Freigabe Anflug','Piste']}
+ ],
+ landung:[
+  {n:'Erstanruf Tower',init:'TWRarr'},
+  {n:'Go-around',r:'TWR',you:'{stn}, {cs}, going around',atc:'{cs}, roger, fly runway heading, climb 5000 feet',rb:['Heading','Höhe']},
+  {n:'Runway vacated',init:'GNDarr'},
+  {n:'Taxi to stand',r:'GND',you:'{stn}, {cs}, request taxi to stand {arrGate}',atc:'{cs}, taxi to stand {arrGate} via …',rb:['Stand','Route']}
+ ]
+};
+const ROLEFOR={DEL:['DEL','dep'],GND:['GND','dep'],TWR:['TWR','dep'],DEP:['DEP','dep'],CTR:['CTR','dep'],APP:['APP','arr']};
+function stnCtx(role,side){
+  const icao=side==='arr'?F().arr:F().dep;const c=cover(role,icao);
+  const word=role==='DEP'?'Departure':ROLEWORD[role];
+  const nm=c?c.spoken:(CITY[(icao||'').toUpperCase()]||icao||'…')+' '+word;
+  return{d:nm,s:nm,c};
+}
+
+/* ---------- Funk rendern ---------- */
+function renderFunk(){
+  $('#phases').innerHTML=PH.map(([k,n])=>`<button data-ph="${k}" class="${S.phase===k?'act':''}">${n}</button>`).join('');
+  const ph=S.phase;let h='';
+  // Stationen
+  h+=`<div class="card"><h3>Stationen ${V.t?'· VATSIM live':'· warte auf VATSIM …'}</h3>`;
+  STN[ph].forEach(([role,side])=>{
+    const icao=side==='arr'?F().arr:F().dep;const c=cover(role,icao);
+    h+=`<div class="stn"><span class="role">${role==='DEP'?'Departure':ROLEWORD[role]}<br>${esc(icao||'')}</span><span class="who">${c?esc(c.cs)+(c.covering?' <span style="color:var(--dim);font-size:13px">(übernimmt)</span>':''):'<span class="empty">niemand online</span>'}</span>${c?`<span class="fq">${esc(c.freq)}</span>`:`<span class="fq off">Unicom 122.800</span>`}</div>`;
+  });
+  h+=`</div>`;
+  // Anfragen
+  h+=`<div class="reqs">`+REQ[ph].map((q,i)=>`<button data-rq="${i}" class="${S.req===ph+i?'act':''}">${esc(q.n)}</button>`).join('')+`</div>`;
+  const qi=S.req&&S.req.startsWith(ph)?+S.req.slice(ph.length):0;const q=REQ[ph][qi]||REQ[ph][0];
+  h+=`<div class="card ${S.sp?'show-sp':''}" id="reqCard">`+(q.clr?clrCard():q.init?initCard(q.init):reqCard(q))+`</div>`;
+  $('#funkBody').innerHTML=h;
+  if(!S.req)S.req=ph+'0';
+  $$('.reqs button')[qi]?.classList.add('act');
+}
+function initCard(kind){
+  const map={DEP:['DEP','dep'],CTR:['CTR','dep'],APP:['APP','arr'],TWRarr:['TWR','arr'],GNDarr:['GND','arr'],DEL:['DEL','dep'],GND:['GND','dep'],TWRdep:['TWR','dep']};
+  const[role,side]=map[kind];const st=stnCtx(role,side);CTX={stn:st};
+  const tips={DEP:'Höhe, die du gerade durchfliegst, und die freigegebene Höhe – dazu SID oder Heading.',CTR:'Nur Callsign, Höhe und was du gerade fliegst. Steigst oder sinkst du, sag „passing … climbing …“.',APP:'Höhe, STAR und die ATIS-Kennung des Zielflughafens.',TWRarr:'Anflugart und Piste – mehr nicht.',GNDarr:'Piste frei und gewünschter Stand.'};
+  return`<h3>Erstanruf · ${st.c?esc(st.c.cs)+' · <span class="mono" style="color:var(--g)">'+esc(st.c.freq)+'</span>':'Station offline – Unicom 122.800'}</h3>`+phrase(INIT[kind])+`<div class="lbl">MERKHILFE</div><div class="atc">${esc(tips[kind]||'')}</div><div class="msg">Tippe auf einen Baustein, um ihn zu ändern.</div>`;
+}
+function reqCard(q){
+  const side=['APP'].includes(q.r)||S.phase==='landung'||S.phase==='anflug'?'arr':'dep';
+  CTX={stn:stnCtx(q.r==='DEP'?'DEP':q.r,side)};
+  return`<div class="lbl">DU</div>${phrase(q.you)}<div class="lbl">ATC ANTWORTET MEIST</div><div class="atc">${phrase(q.atc)}</div>${rb(q.rb)}`;
+}
+function clrCard(){
+  const f=F();const st=stnCtx('DEL','dep');CTX={stn:st};
+  const dep=(f.dep||'').toUpperCase();
+  let sids=[...new Set([f.sid,...(S.mem[dep]||[])].filter(Boolean).map(s=>s.toUpperCase()))];
+  const ef=(f.exitFix||'').toUpperCase();
+  sids.sort((a,b)=>(b===f.sid)-(a===f.sid)||(ef&&b.startsWith(ef.slice(0,4)))-(ef&&a.startsWith(ef.slice(0,4))));
+  const at=atisOf(dep,'dep');
+  let warn='';if(at&&at.rwy&&f.depRwy&&at.rwy!==f.depRwy.toUpperCase())warn=`<div class="warnbox">ATIS meldet Piste ${esc(at.rwy)}, geplant ist ${esc(f.depRwy)} – die SID ändert sich wahrscheinlich. <button class="btn ghost" data-act="takeRwy" style="min-height:34px;padding:4px 10px;margin-left:6px">Piste ${esc(at.rwy)} übernehmen</button></div>`;
+  const sel=f.clrType==='sid'?f.sid:'';
+  let h=`<h3>Clearance · ${st.c?esc(st.c.cs)+' · <span class="mono" style="color:var(--g)">'+esc(st.c.freq)+'</span>':'Delivery offline – nächste Station rufen'}</h3>`;
+  h+=`<div class="lbl">DU</div>`+phrase(INIT.DEL);
+  h+=`<div class="lbl">DEPARTURE – TIPPE, WAS DER LOTSE SAGT</div><div class="opts">`+sids.map(s=>`<button data-sid="${esc(s)}" class="${f.clrType==='sid'&&sel===s?'sel':''} ${s===f.sid&&S.mem.__plan!==s?'':''}">${esc(s)}</button>`).join('')+
+    `<button data-sid="__other">Andere SID …</button><button data-clr="vec" class="${f.clrType==='vec'?'sel':''}">Radar vectors</button><button data-clr="hdg" class="${f.clrType==='hdg'?'sel':''}">Heading …</button></div>`;
+  if(ef)h+=`<div class="msg">Deine Route verlässt den Platz über ${esc(ef)} – SIDs mit diesem Namen passen.</div>`;
+  h+=`<div class="lbl">STEIGEN</div><div class="opts">`+['VIA SID','4000','5000','6000','FL70','FL100'].map(c=>`<button data-climb="${c}" class="${f.climb===c?'sel':''}">${c==='VIA SID'?'Climb via SID':c}</button>`).join('')+`<button data-climb="__other">Andere …</button></div>`;
+  h+=`<div class="lbl">SQUAWK</div><div class="opts"><button data-e="squawk" class="${f.squawk?'sel':''}">${f.squawk?esc(f.squawk):'Squawk eintragen'}</button></div>`;
+  h+=warn;
+  const dpt=f.clrType==='vec'?'radar vectors':f.clrType==='hdg'?'heading {hdg}':'{sid} departure';
+  const climb=f.climb==='VIA SID'?'climb via SID':'initial climb {climb}';
+  h+=`<div class="lbl">ATC</div><div class="atc">${phrase('{cs}, cleared to {arr}, '+dpt+', runway {depRwy}, '+climb+', squawk {squawk}')}</div>`;
+  h+=`<div class="lbl">DEIN READBACK</div>`+phrase('Cleared to {arr}, '+dpt+', runway {depRwy}, '+climb+', squawk {squawk}, {cs}');
+  return h;
+}
+
+/* ---------- Checklisten ---------- */
+const CK=[
+ {id:'bs',n:'Before Start',ph:'boden',it:[['Cockpit prep','COMPLETE (BOTH)'],['Gear pins and covers','REMOVED'],['Signs','ON / AUTO'],['ADIRS','NAV'],['Fuel quantity','{fuel}'],['TO data','SET'],['Baro ref','{qnhDep} SET (BOTH)'],'LINE',['Windows / doors','CLOSED (BOTH)'],['Beacon','ON'],['Thr levers','IDLE'],['Parking brake','AS RQRD']]},
+ {id:'as',n:'After Start',ph:'boden',it:[['Anti ice','AS RQRD'],['ECAM status','CHECKED'],['Pitch trim','{trim} SET'],['Rudder trim','ZERO']]},
+ {id:'bt',n:'Before Takeoff',ph:'boden',it:[['Flight controls','CHECKED (BOTH)'],['Flt inst','CHECKED (BOTH)'],['Briefing','CONFIRMED'],['Flap setting','CONF {flaps} (BOTH)'],['V1, VR, V2 / FLX temp','{vspeeds} (BOTH)'],['ATC','SET'],['ECAM memo','TO NO BLUE','Auto brk max · Signs on · Cabin ready · Splrs arm · Flaps TO · TO config norm'],'LINE',['Cabin crew','ADVISED'],['Eng mode sel','AS RQRD'],['Packs','AS RQRD']]},
+ {id:'at',n:'After Takeoff / Climb',ph:'abflug',it:[['Ldg gear','UP'],['Flaps','RETRACTED'],['Packs','ON'],'LINE',['Baro ref','STD SET (BOTH)']]},
+ {id:'ap',n:'Approach',ph:'anflug',it:[['Briefing','CONFIRMED'],['ECAM status','CHECKED'],'LINE',['Seat belts','ON'],['Baro','{qnhArr} SET (BOTH)'],['MDA / DH','{mins} SET (BOTH)'],['Eng mode sel','AS RQRD']]},
+ {id:'ld',n:'Landing',ph:'anflug',it:[['Cabin crew','ADVISED'],['A/THR','SPEED / OFF'],['ECAM memo','LDG NO BLUE','Ldg gear dn · Signs on · Cabin ready · Splrs arm · Flaps set']]},
+ {id:'al',n:'After Landing',ph:'landung',it:[['Flaps','RETRACTED'],['Spoilers','DISARMED'],['APU','START'],['Radar','OFF / STBY']]},
+ {id:'pk',n:'Parking',ph:'landung',it:[['APU bleed','ON'],['Engines','OFF'],['Seat belts','OFF'],['Ext lt','AS RQRD'],['Fuel pumps','OFF'],['Park brk and chocks','AS RQRD']],note:'Consider HEAVY RAIN'},
+ {id:'sa',n:'Securing the Aircraft',ph:'landung',it:[['ADIRS','OFF'],['Oxygen','OFF'],['APU bleed','OFF'],['Emer exit lt','OFF'],['No smoking','OFF'],['APU and bat','OFF']],note:'Consider COLD WEATHER'},
+ {id:'ev',n:'On Ground Emer Evacuation',ph:'',em:1,it:[['Aircraft / parking brk','STOP / ON'],['ATC (VHF 1)','NOTIFY'],['ΔP (only if MAN CAB PR has been used)','CHECK ZERO','If not zero, MODE SEL on MAN and V/S CTL FULL UP'],['ENG master 1 and 2','OFF'],['Cabin crew (PA)','NOTIFY'],['Fire P/Bs (ENG and APU)','PUSH'],['Agents (ENG and APU)','AS RQRD'],['Evacuation','INITIATE']]}
 ];
-const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function card(t,state,label,text){
-  let el=document.getElementById(t.id);
-  if(!el){el=document.createElement('div');el.className='card';el.id=t.id;out.appendChild(el)}
-  el.innerHTML=`<div class="head"><span class="name">${esc(t.name)}</span><span class="st ${state}">${esc(label)}</span></div>${text?`<pre>${esc(text)}</pre>`:''}`;
+const fill=s=>s.replace(/\{(\w+)\}/g,(_,k)=>F()[k]||'____');
+function renderCheck(){
+  $('#ckBody').innerHTML=CK.map(c=>{
+    const items=c.it.map((x,i)=>[x,i]).filter(([x])=>x!=='LINE');
+    const done=items.filter(([_,i])=>S.ck[c.id+i]).length,all=done===items.length;
+    const open=c.ph===S.phase&&!all&&!CK.some(o=>o.ph===S.phase&&o!==c&&CK.indexOf(o)<CK.indexOf(c)&&!o.it.every((x,i)=>x==='LINE'||S.ck[o.id+i]));
+    return`<details class="card ck ${all?'done':''} ${c.em?'em':''}" ${open?'open':''}><summary><h4>${esc(c.n.toUpperCase())}<span class="prog">${all?'✓ COMPLETE':done+' / '+items.length}</span></h4></summary><ul>`+
+      c.it.map((x,i)=>x==='LINE'?'<li class="line">below the line</li>':`<li data-ck="${c.id+i}" class="${S.ck[c.id+i]?'on':''}"><span class="i">${esc(x[0].toUpperCase())}${x[2]?`<small>${esc(x[2])}</small>`:''}</span><span class="v">${esc(fill(x[1]))}</span></li>`).join('')+`</ul>${c.note?`<div class="msg">${esc(c.note)}</div>`:''}</details>`}).join('');
 }
-async function runAll(){
-  for(const t of tests){
-    card(t,'wait','prüft …','');
-    try{card(t,'ok','OK',await t.run())}
-    catch(e){card(t,'bad','Fehler',(e&&e.message)||String(e))}
-  }
+/* ---------- Karte ---------- */
+let MAP=null,LAY=null;
+function renderMap(){
+  if(typeof L==='undefined'){$('#map').innerHTML='<p class="empty" style="padding:16px">Karte konnte nicht geladen werden.</p>';return}
+  if(!MAP){MAP=L.map('map',{zoomControl:true,attributionControl:true});
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:12,attribution:'© OpenStreetMap · © CARTO'}).addTo(MAP)}
+  if(LAY)LAY.remove();LAY=L.layerGroup().addTo(MAP);
+  const f=F();const pts=[];if(f.depPos)pts.push(f.depPos);f.wps.forEach(w=>pts.push([w[0],w[1]]));if(f.arrPos)pts.push(f.arrPos);
+  if(pts.length<2){MAP.setView([51,10],5);setTimeout(()=>MAP.invalidateSize(),50);return}
+  L.polyline(pts,{color:'#ff3cf0',weight:3}).addTo(LAY);
+  f.wps.forEach(w=>L.circleMarker([w[0],w[1]],{radius:3,color:'#3cc8ff',weight:1,fillOpacity:1}).bindTooltip(w[2],{permanent:f.wps.length<40,direction:'right',className:'wplbl'}).addTo(LAY));
+  [[f.depPos,f.dep],[f.arrPos,f.arr]].forEach(([p,n])=>p&&L.circleMarker(p,{radius:7,color:'#3fe08a',weight:2,fillOpacity:.3}).bindTooltip(n,{permanent:true,direction:'top',className:'wplbl'}).addTo(LAY));
+  setTimeout(()=>{MAP.invalidateSize();MAP.fitBounds(L.latLngBounds(pts),{padding:[30,30]})},60);
 }
-document.getElementById('go').addEventListener('click',runAll);
-runAll();
+function renderOnline(){
+  const f=F();if(!V.t){$('#onlineList').textContent=V.err?'VATSIM nicht erreichbar.':'Noch keine VATSIM-Daten.';return}
+  const keys=[f.dep,f.arr].filter(Boolean).map(s=>s.toUpperCase());
+  const list=V.ctl.filter(c=>keys.includes(pre(c))||(c.facility>=6&&keys.some(k=>pre(c).slice(0,2)===k.slice(0,2))));
+  $('#onlineList').innerHTML=list.length?list.map(c=>`<div class="stn"><span class="role">${FAC[c.facility]||''}</span><span class="who mono">${esc(c.callsign)}</span><span class="fq">${esc(c.frequency)}</span></div>`).join(''):'<span class="empty">Auf deiner Strecke ist gerade niemand online – Unicom 122.800.</span>';
+}
+
+/* ---------- Info ---------- */
+function renderInfo(){
+  const f=F();const rows=[[f.dep,'dep','Abflug',f.depRwy],[f.arr,'arr','Ziel',f.arrRwy],[f.altn,'','Ausweich','']].filter(r=>r[0]);
+  if(!rows.length){$('#infoBody').innerHTML='<div class="card empty">Lade zuerst einen Flug.</div>';return}
+  $('#infoBody').innerHTML=rows.map(([icao,side,n,rwy])=>{
+    icao=icao.toUpperCase();const m=MET[icao];const d=m?decode(m,rwy):null;const a=side?atisOf(icao,side):null;
+    let h=`<div class="card met"><h3>${n} · <span class="mono" style="color:var(--ink)">${esc(icao)}</span></h3>`;
+    h+=m?`<div class="raw">${esc(m)}</div><ul>${d.o.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<div class="empty">Kein METAR.</div>';
+    if(side){
+      if(a){h+=`<div class="lbl">ATIS ${esc(a.cs)} · ${esc(a.freq)}</div><div class="row"><span class="big">${esc(a.code||'?')}</span><span>${a.rwy?'Piste '+esc(a.rwy):''} ${a.qnh?'· QNH '+esc(a.qnh):''}</span><button class="btn" data-take="${side}">Übernehmen</button></div><div class="atis">${esc(a.txt)}</div>`}
+      else{h+=`<div class="lbl">ATIS</div><div class="empty">Keine VATSIM-ATIS online.${d&&d.qnh?` <button class="btn ghost" data-takeq="${side}" data-q="${esc(d.qnh)}">QNH ${esc(d.qnh)} aus METAR übernehmen</button>`:''}</div>`}
+    }
+    return h+'</div>'}).join('');
+}
+
+/* ---------- Flug-Formular ---------- */
+function renderForm(){
+  $('#sbUser').value=S.user||'';
+  $('#fGrid').innerHTML=FORM.map(k=>`<label class="f">${esc(K[k].l)}<input data-k="${k}" value="${esc(F()[k])}" placeholder="—" ${K[k].num?'inputmode="numeric"':''}></label>`).join('');
+  $('#f-route').value=F().route||'';
+}
+
+/* ---------- Kopf & Tabs ---------- */
+function head(){
+  const f=F();$('#hCs').textContent=f.cs||'EFB';
+  $('#hRt').textContent=f.dep?`${f.dep} → ${f.arr}${f.crz?' · '+f.crz:''}${f.squawk?' · SQ '+f.squawk:''}`:'Kein Flug geladen';
+  $('#hDot').className='dot '+(V.err?'err':V.t?'on':'');
+  $('#sync').textContent=V.t?'VATSIM '+V.t.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):V.err?'offline':'–';
+}
+function tab(t){
+  S.tab=t;save();$$('section.tab').forEach(s=>s.classList.toggle('act',s.id==='t-'+t));$$('nav button').forEach(b=>b.classList.toggle('act',b.dataset.t===t));
+  $('#quick').classList.toggle('hide',t!=='funk');
+  if(t==='funk')renderFunk();if(t==='check')renderCheck();if(t==='karte'){renderMap();renderOnline()}if(t==='info')renderInfo();if(t==='flug')renderForm();
+  window.scrollTo(0,0);
+}
+function renderAll(){head();tab(S.tab)}
+
+/* ---------- Eingabe-Dialog ---------- */
+let mCb=null;
+function ask(title,val,opts,num,cb){
+  $('#mTitle').textContent=title;const i=$('#mInput');i.value=val||'';i.inputMode=num?'numeric':'text';
+  $('#mOpts').innerHTML=(opts||[]).map(o=>`<button data-mo="${esc(o)}">${esc(o)}</button>`).join('');
+  mCb=cb;$('#modal').classList.add('on');setTimeout(()=>i.focus(),30);
+}
+const closeM=()=>{$('#modal').classList.remove('on');mCb=null};
+$('#mOk').onclick=()=>{const v=$('#mInput').value.trim().toUpperCase();const cb=mCb;closeM();cb&&cb(v)};
+$('#mCancel').onclick=closeM;
+$('#mInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('#mOk').click();if(e.key==='Escape')closeM()});
+$('#mOpts').addEventListener('click',e=>{const b=e.target.closest('[data-mo]');if(b){$('#mInput').value=b.dataset.mo;$('#mOk').click()}});
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeM()});
+function editKey(k){const m=K[k]||{l:k};ask(m.l,F()[k],m.o,m.num,v=>{set(k,k==='clearedAlt'||k==='passing'||k==='crz'?lvl(v):v)})}
+function set(k,v){F()[k]=v;if(k==='sid'&&v)remember(F().dep,v);save();head();if(S.tab==='funk')renderFunk();if(S.tab==='check')renderCheck()}
+
+/* ---------- Ereignisse ---------- */
+$('#nav').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b)tab(b.dataset.t)});
+$('#sbLoad').onclick=loadSB;
+$('#sbUser').addEventListener('keydown',e=>{if(e.key==='Enter')loadSB()});
+$('#t-flug').addEventListener('change',e=>{const k=e.target.dataset.k;if(!k)return;let v=e.target.value.trim();if(k!=='route')v=v.toUpperCase();if(['crz','clearedAlt'].includes(k))v=lvl(v);F()[k]=v;if(k==='sid')remember(F().dep,v);if(['dep','arr','altn'].includes(k))pullMetar();save();head()});
+$('#newFlight').onclick=()=>ask('Neuer Flug? Tippe JA','',['JA'],0,v=>{if(v==='JA'){S.f=blank();S.ck={};S.phase='boden';S.req=null;save();renderAll()}});
+$('#phases').addEventListener('click',e=>{const b=e.target.closest('[data-ph]');if(!b)return;S.phase=b.dataset.ph;S.req=S.phase+'0';save();renderFunk()});
+$('#funkBody').addEventListener('click',e=>{
+  const t=e.target;let b;
+  if(b=t.closest('[data-rq]')){S.req=S.phase+b.dataset.rq;save();renderFunk();return}
+  if(b=t.closest('[data-sid]')){const s=b.dataset.sid;if(s==='__other')ask('SID eintragen',F().exitFix?F().exitFix.slice(0,5):'',[],0,v=>{if(v){F().clrType='sid';set('sid',v)}});else{F().clrType='sid';set('sid',s)}return}
+  if(b=t.closest('[data-clr]')){const c=b.dataset.clr;if(c==='hdg')ask('Heading',F().hdg,K.hdg.o,1,v=>{F().clrType='hdg';set('hdg',v)});else{F().clrType='vec';save();renderFunk()}return}
+  if(b=t.closest('[data-climb]')){const c=b.dataset.climb;if(c==='__other')ask('Initial climb',F().climb==='VIA SID'?'':F().climb,['3000','7000','FL80'],0,v=>set('climb',lvl(v)));else set('climb',c);return}
+  if(b=t.closest('[data-act="takeRwy"]')){const a=atisOf(F().dep,'dep');if(a)set('depRwy',a.rwy);return}
+  if(b=t.closest('[data-e]')){editKey(b.dataset.e)}
+});
+$('#ckBody').addEventListener('click',e=>{const li=e.target.closest('[data-ck]');if(!li)return;const k=li.dataset.ck;S.ck[k]=!S.ck[k];save();renderCheck()});
+$('#ckReset').onclick=()=>{S.ck={};save();renderCheck()};
+$('#infoBody').addEventListener('click',e=>{
+  let b;if(b=e.target.closest('[data-take]')){const s=b.dataset.take;const a=atisOf(s==='dep'?F().dep:F().arr,s);if(!a)return;
+    if(s==='dep'){if(a.code)F().atisDep=a.code;if(a.rwy)F().depRwy=a.rwy;if(a.qnh)F().qnhDep=a.qnh}else{if(a.code)F().atisArr=a.code;if(a.rwy)F().arrRwy=a.rwy;if(a.qnh)F().qnhArr=a.qnh}
+    save();head();b.textContent='Übernommen ✓';return}
+  if(b=e.target.closest('[data-takeq]')){F()[b.dataset.takeq==='dep'?'qnhDep':'qnhArr']=b.dataset.q;save();b.textContent='Übernommen ✓'}
+});
+const QUICK={sayagain:['Say again','{cs}, say again'],standby:['Standby','Nur sagen, wenn ATC dich ruft und du kurz Zeit brauchst: „{cs}, standby“'],unable:['Unable','{cs}, unable … (Grund), request …'],em:['Notfall','Squawk 7700 Notfall · 7600 Funkausfall · 7500 nur real – auf VATSIM nie. Funk: „Mayday Mayday Mayday, {cs}, …“ oder „Pan-pan Pan-pan Pan-pan, {cs}, …“']};
+$('#quick').addEventListener('click',e=>{const b=e.target.closest('[data-q]');if(!b)return;const q=b.dataset.q;
+  if(q==='sp'){S.sp=!S.sp;save();b.classList.toggle('sel',S.sp);renderFunk();return}
+  const[t,x]=QUICK[q];ask(t,'',[],0,()=>{});$('#mInput').style.display='none';$('#mOpts').innerHTML=`<div class="say" style="font-size:17px">${esc(x.replace('{cs}',F().cs||'Callsign'))}</div>`;$('#mOk').textContent='OK';
+  const restore=()=>{$('#mInput').style.display=''};setTimeout(()=>{$('#mOk').addEventListener('click',restore,{once:true});$('#mCancel').addEventListener('click',restore,{once:true})},0);
+});
+
+/* ---------- Start ---------- */
+if(!F().dep&&S.tab!=='flug')S.tab='flug';
+renderAll();
+pullVatsim();setInterval(pullVatsim,60000);
+if(F().dep){pullMetar();setInterval(pullMetar,600000)}
 }
 </script>
 </body>
