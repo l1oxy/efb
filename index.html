@@ -94,6 +94,7 @@ textarea{min-height:70px;resize:vertical}
 .ck li .i{font-family:"B612 Mono",monospace;font-size:15px}
 details.ck summary{list-style:none;cursor:pointer}details.ck summary::-webkit-details-marker{display:none}
 #map{height:min(62vh,560px);border-radius:14px;border:1px solid var(--line);background:#0d1622}
+.leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.6)}
 .leaflet-container{font-family:"B612",sans-serif;background:#0d1622}
 .wplbl{background:none;border:0;box-shadow:none;color:var(--c);font:11px "B612 Mono",monospace;padding:0}
 .wplbl::before{display:none}
@@ -262,9 +263,10 @@ function atisOf(icao,kind){
   icao=(icao||'').toUpperCase();const a=V.atis.filter(x=>pre(x)===icao);
   const pick=a.find(x=>x.callsign.includes(kind==='dep'?'_D_':'_A_'))||a.find(x=>!/_[AD]_/.test(x.callsign))||a[0];
   if(!pick)return null;const txt=(pick.text_atis||[]).join(' ');
-  const rw=txt.match(/(?:RUNWAY|RWY)S?\s*(?:IN USE\s*)?(?:FOR\s+(?:DEPARTURE|LANDING|ARRIVAL)S?\s*)?(\d{2}\s?[LRC]?)/i);
+  const rws=[];for(const m of txt.matchAll(/(?:RUNWAY|RWY)S?\s*(?:IN USE\s*)?(?:FOR\s+(?:DEPARTURE|LANDING|ARRIVAL)S?\s*)?((?:\d{2}\s?[LRC]?\b(?:\s*(?:AND|,|\/)?\s*)?)+)/gi))for(const r of m[1].matchAll(/\d{2}\s?[LRC]?/g)){const v=r[0].replace(/\s/g,'').toUpperCase();if(!rws.includes(v))rws.push(v)}
+  const rw=rws.length?[0,rws[0]]:null;
   const q=txt.match(/QNH\s*(\d{3,4})/i)||txt.match(/\bQ(\d{4})\b/);
-  return{cs:pick.callsign,freq:pick.frequency,code:pick.atis_code||'',rwy:rw?rw[1].replace(/\s/g,'').toUpperCase():'',qnh:q?q[1]:'',txt};
+  return{cs:pick.callsign,freq:pick.frequency,code:pick.atis_code||'',rwy:rw?rw[1]:'',rws,qnh:q?q[1]:'',txt};
 }
 
 /* ---------- METAR ---------- */
@@ -432,7 +434,7 @@ function clrCard(){
   const ef=(f.exitFix||'').toUpperCase();
   sids.sort((a,b)=>(b===f.sid)-(a===f.sid)||(ef&&b.startsWith(ef.slice(0,4)))-(ef&&a.startsWith(ef.slice(0,4))));
   const at=atisOf(dep,'dep');
-  let warn='';if(at&&at.rwy&&f.depRwy&&at.rwy!==f.depRwy.toUpperCase())warn=`<div class="warnbox">ATIS meldet Piste ${esc(at.rwy)}, geplant ist ${esc(f.depRwy)} – die SID ändert sich wahrscheinlich. <button class="btn ghost" data-act="takeRwy" style="min-height:34px;padding:4px 10px;margin-left:6px">Piste ${esc(at.rwy)} übernehmen</button></div>`;
+  let warn='';if(at&&at.rwy&&f.depRwy&&!at.rws.includes(f.depRwy.toUpperCase()))warn=`<div class="warnbox">ATIS meldet Piste ${esc(at.rwy)}, geplant ist ${esc(f.depRwy)} – die SID ändert sich wahrscheinlich. <button class="btn ghost" data-act="takeRwy" style="min-height:34px;padding:4px 10px;margin-left:6px">Piste ${esc(at.rwy)} übernehmen</button></div>`;
   const sel=f.clrType==='sid'?f.sid:'';
   let h=`<h3>Clearance · ${st.c?esc(st.c.cs)+' · <span class="mono" style="color:var(--g)">'+esc(st.c.freq)+'</span>':'Delivery offline – nächste Station rufen'}</h3>`;
   h+=`<div class="lbl">DU</div>`+phrase(INIT.DEL);
@@ -476,7 +478,7 @@ let MAP=null,LAY=null;
 function renderMap(){
   if(typeof L==='undefined'){$('#map').innerHTML='<p class="empty" style="padding:16px">Karte konnte nicht geladen werden.</p>';return}
   if(!MAP){MAP=L.map('map',{zoomControl:true,attributionControl:true});
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:12,attribution:'© OpenStreetMap · © CARTO'}).addTo(MAP)}
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:12,attribution:'© OpenStreetMap'}).addTo(MAP)}
   if(LAY)LAY.remove();LAY=L.layerGroup().addTo(MAP);
   const f=F();const pts=[];if(f.depPos)pts.push(f.depPos);f.wps.forEach(w=>pts.push([w[0],w[1]]));if(f.arrPos)pts.push(f.arrPos);
   if(pts.length<2){MAP.setView([51,10],5);setTimeout(()=>MAP.invalidateSize(),50);return}
@@ -501,7 +503,7 @@ function renderInfo(){
     let h=`<div class="card met"><h3>${n} · <span class="mono" style="color:var(--ink)">${esc(icao)}</span></h3>`;
     h+=m?`<div class="raw">${esc(m)}</div><ul>${d.o.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<div class="empty">Kein METAR.</div>';
     if(side){
-      if(a){h+=`<div class="lbl">ATIS ${esc(a.cs)} · ${esc(a.freq)}</div><div class="row"><span class="big">${esc(a.code||'?')}</span><span>${a.rwy?'Piste '+esc(a.rwy):''} ${a.qnh?'· QNH '+esc(a.qnh):''}</span><button class="btn" data-take="${side}">Übernehmen</button></div><div class="atis">${esc(a.txt)}</div>`}
+      if(a){h+=`<div class="lbl">ATIS ${esc(a.cs)} · ${esc(a.freq)}</div><div class="row"><span class="big">${esc(a.code||'?')}</span><span>${a.rws.length?'Piste '+esc(a.rws.join(' / ')):''} ${a.qnh?'· QNH '+esc(a.qnh):''}</span><button class="btn" data-take="${side}">Übernehmen</button></div><div class="atis">${esc(a.txt)}</div>`}
       else{h+=`<div class="lbl">ATIS</div><div class="empty">Keine VATSIM-ATIS online.${d&&d.qnh?` <button class="btn ghost" data-takeq="${side}" data-q="${esc(d.qnh)}">QNH ${esc(d.qnh)} aus METAR übernehmen</button>`:''}</div>`}
     }
     return h+'</div>'}).join('');
@@ -565,7 +567,7 @@ $('#ckBody').addEventListener('click',e=>{const li=e.target.closest('[data-ck]')
 $('#ckReset').onclick=()=>{S.ck={};save();renderCheck()};
 $('#infoBody').addEventListener('click',e=>{
   let b;if(b=e.target.closest('[data-take]')){const s=b.dataset.take;const a=atisOf(s==='dep'?F().dep:F().arr,s);if(!a)return;
-    if(s==='dep'){if(a.code)F().atisDep=a.code;if(a.rwy)F().depRwy=a.rwy;if(a.qnh)F().qnhDep=a.qnh}else{if(a.code)F().atisArr=a.code;if(a.rwy)F().arrRwy=a.rwy;if(a.qnh)F().qnhArr=a.qnh}
+    if(s==='dep'){if(a.code)F().atisDep=a.code;if(a.rwy&&!a.rws.includes((F().depRwy||'').toUpperCase()))F().depRwy=a.rwy;if(a.qnh)F().qnhDep=a.qnh}else{if(a.code)F().atisArr=a.code;if(a.rwy&&!a.rws.includes((F().arrRwy||'').toUpperCase()))F().arrRwy=a.rwy;if(a.qnh)F().qnhArr=a.qnh}
     save();head();b.textContent='Übernommen ✓';return}
   if(b=e.target.closest('[data-takeq]')){F()[b.dataset.takeq==='dep'?'qnhDep':'qnhArr']=b.dataset.q;save();b.textContent='Übernommen ✓'}
 });
