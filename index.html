@@ -10,132 +10,112 @@
 <link href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
-/* VOICE: glass cockpit, ruhig, präzise
-   IDEA: das Display einer Airbus-MCDU/ECAM – grün = gesetzt, amber = fehlt, cyan = wählbar
-   PICTURE: der Funk-Leitfaden selbst, Bausteine als Chips
-   COLOUR and TYPE: Nachtblau, ECAM-Grün/Amber/Cyan, Weiß; B612 (die Airbus-Cockpitschrift)
-   LAYOUT: Kopfzeile, Inhalt, Tabs unten für den Daumen */
-:root{--bg:#0a1018;--p1:#111b27;--p2:#17253a;--line:#243650;--ink:#e8f0f8;--dim:#8aa0b8;--g:#3fe08a;--a:#ffb020;--c:#3cc8ff;--r:#ff5a5a;--w:#fff}
+/* VOICE: ruhig, präzise, Cockpit bei Nacht
+   IDEA: die Papier-Checkliste im Cockpit – Schalter links, Pünktchen, Stellung rechts
+   PICTURE: die Liste selbst; im Funk die Frequenz als größte Zahl
+   COLOUR and TYPE: Nachtblau, ECAM-Grün für Werte, Cyan nur für den einen Knopf, Amber für Hinweise; B612
+   LAYOUT: eine Spalte, oben was jetzt zählt, unten fester Weiter-Knopf */
+:root{--bg:#0a0f16;--p1:#111821;--p2:#18212d;--line:#1d2836;--ink:#e9eef5;--dim:#7d8ea3;--mut:#526276;--g:#3fe08a;--a:#ffb020;--c:#3cc8ff;--r:#ff5a5a}
 *{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 "B612",system-ui,sans-serif;overflow-x:clip}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "B612",system-ui,sans-serif;overflow-x:clip}
 .mono{font-family:"B612 Mono",ui-monospace,monospace}
-button{font:inherit;color:inherit;cursor:pointer}
-header{position:sticky;top:0;z-index:20;background:#0a1018ee;backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:calc(8px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-left)) 8px;display:flex;align-items:center;gap:12px}
-header .cs{font-weight:700;font-size:20px;color:var(--g)}
-header .rt{color:var(--dim);font-size:14px;flex:1}
-.dot{width:10px;height:10px;border-radius:50%;background:var(--dim);flex:none}
-.dot.on{background:var(--g)}.dot.err{background:var(--r)}
-#sync{font-size:12px;color:var(--dim)}
-main{padding:14px max(16px,env(safe-area-inset-left)) calc(150px + env(safe-area-inset-bottom));max-width:1100px;margin:0 auto}
-nav{position:fixed;bottom:0;left:0;right:0;z-index:30;background:#0d1622;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:env(safe-area-inset-bottom)}
-nav button{background:none;border:0;padding:12px 4px 10px;font-size:13px;color:var(--dim);display:flex;flex-direction:column;align-items:center;gap:3px;min-height:56px}
-nav button svg{width:22px;height:22px}
-nav button.act{color:var(--c)}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}
+header{position:sticky;top:0;z-index:20;background:var(--bg);padding:calc(10px + env(safe-area-inset-top)) 18px 9px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line)}
+header .cs{font:700 15px "B612 Mono",monospace;color:var(--g)}
+header .rt{font:12px "B612 Mono",monospace;color:var(--dim);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--mut);flex:none}.dot.on{background:var(--g)}.dot.err{background:var(--r)}
+#sync{font-size:11px;color:var(--mut)}
+.gear{color:var(--dim);display:flex;padding:6px}.gear svg{width:20px;height:20px}.gear.act{color:var(--ink)}
+main{padding:18px 18px calc(170px + env(safe-area-inset-bottom));max-width:760px;margin:0 auto}
+nav{position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--bg);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:env(safe-area-inset-bottom)}
+nav button{padding:9px 4px 7px;font-size:11px;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:3px;min-height:52px}
+nav button svg{width:20px;height:20px}nav button.act{color:var(--ink)}
 section.tab{display:none}section.tab.act{display:block}
-h2{font-size:22px;margin:6px 0 12px}
-h3{font-size:16px;margin:0 0 8px;color:var(--dim);font-weight:400}
-.card{background:var(--p1);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--dim)}
-input,select,textarea{font:16px "B612 Mono",monospace;background:var(--p2);color:var(--g);border:1px solid var(--line);border-radius:10px;padding:10px;width:100%;text-transform:uppercase}
-input:placeholder-shown{color:var(--a)}
-input:focus,textarea:focus{outline:2px solid var(--c);outline-offset:1px}
-textarea{min-height:70px;resize:vertical}
-.btn{background:var(--c);color:#04121c;border:0;border-radius:10px;padding:11px 18px;font-weight:700;min-height:44px}
-.btn.ghost{background:transparent;color:var(--c);border:1px solid var(--c)}
-.btn.warn{background:transparent;color:var(--r);border:1px solid var(--r)}
+h2{font-size:24px;line-height:1.15;font-weight:700;margin:0 0 4px}
+h3,.lbl{font-size:11px;letter-spacing:.07em;color:var(--dim);font-weight:400;margin:22px 0 7px;text-transform:uppercase}
+.card{padding:0 0 16px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px 12px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--dim)}
+input,select,textarea{font:15px "B612 Mono",monospace;background:var(--p1);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%;text-transform:uppercase}
+input:placeholder-shown{border-color:#ffb02040}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--c);outline-offset:0}
+textarea{min-height:64px;resize:vertical}
+.btn{background:var(--c);color:#04121c;border-radius:10px;padding:10px 16px;font-weight:700;min-height:44px}
+.btn.ghost{background:none;color:var(--ink);border:1px solid var(--line)}
+.btn.warn{background:none;color:var(--r);border:1px solid #ff5a5a44}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.msg{font-size:14px;color:var(--dim);margin-top:8px}
-.msg.err{color:var(--r)}.msg.ok{color:var(--g)}
-.phases{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;position:sticky;top:58px;z-index:10;background:var(--bg);padding-top:4px}
-.phases button{flex:1 0 auto;background:var(--p1);border:1px solid var(--line);border-radius:99px;padding:10px 16px;color:var(--dim);min-height:44px}
-.phases button.act{background:var(--c);color:#04121c;border-color:var(--c);font-weight:700}
-.chip{display:inline-block;border-radius:7px;padding:1px 7px;margin:1px 0;font-family:"B612 Mono",monospace;font-size:.95em;border:1px solid transparent;cursor:pointer}
-.chip.ok{color:var(--g);background:#3fe08a14;border-color:#3fe08a40}
-.chip.miss{color:var(--a);background:#ffb02014;border-color:#ffb02060}
-.chip.fix{color:var(--w);background:#ffffff10}
-.say{font-size:19px;line-height:1.7}
-.sp{display:none;color:var(--c);font-size:14px;margin-top:6px;font-style:italic}
-.show-sp .sp{display:block}
-.lbl{font-size:12px;color:var(--dim);margin:10px 0 2px;letter-spacing:.02em}
-.atc{color:var(--dim);font-size:16px;line-height:1.6}
-.rb{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
-.rb span{background:var(--p2);border:1px solid var(--line);border-radius:99px;padding:3px 10px;font-size:13px;color:var(--ink)}
-.stn{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.msg{font-size:12px;color:var(--dim);margin-top:6px}.msg.err{color:var(--r)}.msg.ok{color:var(--g)}
+.empty{color:var(--dim);font-size:14px}
+a{color:var(--c)}
+.opts{display:flex;gap:6px;flex-wrap:wrap}
+.opts button,.chip{font:13px "B612 Mono",monospace;padding:7px 13px;border-radius:99px;border:1px solid var(--line);color:var(--ink);min-height:36px;white-space:nowrap}
+.opts button.sel,.chip.on{border-color:var(--c);color:var(--c)}
+/* Funk */
+.phs{display:flex;gap:2px;margin:0 0 22px;overflow-x:auto}
+.phs button{font-size:12px;color:var(--dim);padding:6px 11px;border-radius:99px;white-space:nowrap}
+.phs button.act{color:var(--bg);background:var(--ink)}
+.stn-name{font-size:22px;font-weight:700;line-height:1.2}
+.freq{font:700 clamp(44px,12vw,68px)/1.05 "B612 Mono",monospace;color:var(--g);margin:2px 0 4px;letter-spacing:-.01em}
+.freq.off{color:var(--a);font-size:clamp(30px,8vw,40px)}
+.sub{font-size:12px;color:var(--dim);margin:0}
+.say{font-size:18px;line-height:1.6}
+.vok{color:var(--g);cursor:pointer}
+.vmiss{color:var(--a);border-bottom:1px dashed var(--a);cursor:pointer}
+.sp{display:none;color:var(--c);font-size:13px;margin-top:6px;font-style:italic}.show-sp .sp{display:block}
+.atcl{color:var(--dim);font-size:14px;line-height:1.55}
+.rbk{font:14px/1.6 "B612 Mono",monospace;color:var(--ink)}
+.rb{display:flex;gap:6px;flex-wrap:wrap}.rb span{font-size:12px;border:1px solid var(--line);border-radius:99px;padding:3px 10px}
+.tiny{font-size:12px;color:var(--dim);margin-top:14px;text-decoration:underline;text-underline-offset:3px}
+.warnbox{color:var(--a);font-size:13px;margin-top:12px}
+.warnbox button{color:var(--c);text-decoration:underline;margin-left:4px}
+.bar{position:fixed;left:0;right:0;bottom:calc(52px + env(safe-area-inset-bottom));z-index:25;background:var(--bg);border-top:1px solid var(--line);padding:9px 14px}
+.reqbar{display:flex;gap:6px;overflow-x:auto}
+.reqbar .chip{flex:none}.reqbar .sep{width:1px;background:var(--line);flex:none;margin:6px 4px}
+.reqbar .chip.em{color:var(--r);border-color:#ff5a5a44}
+/* Checklisten */
+.pghead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
+.pghead .lbl{margin:0}
+.pghead select{width:auto;max-width:60%;font:12px "B612",sans-serif;text-transform:none;color:var(--dim);background:none;border:1px solid var(--line);padding:6px 8px}
+.when{font-size:13px;color:var(--a);margin:0 0 16px}
+.r{display:flex;align-items:baseline;gap:8px;padding:6px 0;font:14px/1.35 "B612 Mono",monospace;cursor:pointer}
+.r .who{width:24px;font-size:10px;color:var(--mut);flex:none}
+.r .dots{flex:1;border-bottom:1px dotted #2b3b50;min-width:14px;transform:translateY(-4px)}
+.r .v{color:var(--c);text-align:right;max-width:55%}
+.r.other .i{color:#a9b6c5}
+.r.x .i,.r.x .v{color:var(--mut);text-decoration:line-through}
+.note{font-size:11px;color:var(--mut);margin:-3px 0 3px 32px;line-height:1.4}
+.call{font-size:13px;color:#9fb0c3;font-style:italic;padding:4px 0 4px 32px;line-height:1.4}
+.call b{font-style:normal;font-size:10px;color:var(--mut);font-weight:400;margin-right:6px}
+.sec{font-size:11px;letter-spacing:.07em;color:var(--a);margin:18px 0 4px;padding-top:14px;border-top:1px solid var(--line)}
+.sec small{color:var(--mut);letter-spacing:0;margin-left:6px}
+.line{font-size:10px;letter-spacing:.07em;color:var(--a);text-align:center;border-top:1px solid #ffb02088;margin:8px 0 4px;padding-top:3px}
+.flink{display:block;width:100%;text-align:left;color:var(--c);font-size:13px;padding:7px 0 7px 32px}
+.pnav{display:flex;gap:8px}
+.pnav .b1{width:54px;border:1px solid var(--line);border-radius:12px;color:var(--dim);font-size:20px;min-height:52px}
+.pnav .b2{flex:1;background:var(--c);color:#04121c;border-radius:12px;min-height:52px;font-weight:700;font-size:15px;padding:0 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Karte, Wetter, Rest */
+.stn{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--line)}
 .stn:first-of-type{border-top:0}
-.stn .role{width:74px;color:var(--dim);font-size:13px;flex:none}
-.stn .who{flex:1}
-.stn .fq{font-family:"B612 Mono",monospace;color:var(--g);font-size:20px}
-.stn .fq.off{color:var(--a);font-size:15px}
-.reqs{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:12px}
-.reqs button{background:var(--p2);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:left;min-height:52px}
-.reqs button.act{border-color:var(--c);color:var(--c)}
-.opts{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px}
-.opts button{background:var(--p2);border:1px solid var(--line);border-radius:10px;padding:9px 13px;min-height:44px;font-family:"B612 Mono",monospace}
-.opts button.sel{border-color:var(--g);color:var(--g);background:#3fe08a18}
-.opts button.plan::after{content:" · geplant";font-family:"B612";font-size:12px;color:var(--dim)}
-.warnbox{border:1px solid var(--a);color:var(--a);border-radius:10px;padding:8px 12px;font-size:14px;margin-top:10px}
-.quick{position:fixed;left:0;right:0;bottom:calc(57px + env(safe-area-inset-bottom));z-index:25;display:flex;gap:6px;padding:8px max(12px,env(safe-area-inset-left));background:#0a1018f2;border-top:1px solid var(--line);overflow-x:auto}
-.quick button{flex:1 0 auto;background:var(--p2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:14px;min-height:42px}
-.quick button.em{color:var(--r);border-color:#ff5a5a70}
-.quick.hide{display:none}
-.ck h4{margin:0;font-size:16px;display:flex;justify-content:space-between;align-items:center;gap:10px}
-.ck .prog{font-size:13px;color:var(--dim)}
-.ck.done h4{color:var(--g)}
-.ck ul{list-style:none;margin:10px 0 0;padding:0}
-.ck li{display:flex;justify-content:space-between;gap:12px;padding:11px 4px;border-top:1px dashed var(--line);cursor:pointer;min-height:44px;align-items:center}
-.ck li .v{font-family:"B612 Mono",monospace;color:var(--c);text-align:right}
-.ck li.on{color:var(--dim)}.ck li.on .v{color:var(--g)}
-.ck li.on .i::before{content:"✓ ";color:var(--g)}
-.ck li small{display:block;font-size:12px;color:var(--dim);margin-top:2px;text-transform:none}
-.ck li.line{justify-content:center;cursor:default;min-height:0;padding:6px;font-size:12px;color:var(--a);border-top:2px solid var(--a);text-transform:uppercase;letter-spacing:.04em}
-.ck.em{border-color:#ff5a5a70}.ck.em h4{color:var(--r)}
-.ck li .i{font-family:"B612 Mono",monospace;font-size:15px}
-details.ck summary{list-style:none;cursor:pointer}details.ck summary::-webkit-details-marker{display:none}
-#map{height:min(62vh,560px);border-radius:14px;border:1px solid var(--line);background:#0d1622}
+.stn .role{width:56px;color:var(--dim);font-size:11px;flex:none}
+.stn .who{flex:1;font:13px "B612 Mono",monospace}
+.stn .fq{font:700 17px "B612 Mono",monospace;color:var(--g)}
+#map{height:min(58vh,540px);border-radius:12px;border:1px solid var(--line);background:#0d1622}
 .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.6)}
 .leaflet-container{font-family:"B612",sans-serif;background:#0d1622}
 .wplbl{background:none;border:0;box-shadow:none;color:var(--c);font:11px "B612 Mono",monospace;padding:0}
 .wplbl::before{display:none}
-.met .raw{font-family:"B612 Mono",monospace;color:var(--g);font-size:14px;word-break:break-word}
-.met ul{margin:8px 0 0;padding-left:18px;color:var(--ink)}
-.atis{font-family:"B612 Mono",monospace;font-size:13px;color:var(--dim);white-space:pre-wrap;margin-top:6px}
-.big{font-size:28px;font-family:"B612 Mono",monospace;color:var(--g)}
-.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
-.modal{position:fixed;inset:0;background:#000a;z-index:50;display:none;align-items:center;justify-content:center;padding:16px}
+.met .raw{font:12px "B612 Mono",monospace;color:var(--dim);word-break:break-word}
+.met ul{margin:8px 0 0;padding-left:16px;font-size:14px}
+.atis{font:12px "B612 Mono",monospace;color:var(--mut);white-space:pre-wrap;margin-top:6px}
+.big{font:700 30px "B612 Mono",monospace;color:var(--g)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0 28px}
+.modal{position:fixed;inset:0;background:#000b;z-index:50;display:none;align-items:center;justify-content:center;padding:16px}
 .modal.on{display:flex}
-.modal .box{background:var(--p1);border:1px solid var(--c);border-radius:16px;padding:18px;width:min(420px,100%)}
-.modal .box h3{color:var(--ink);font-size:18px}
-.empty{color:var(--dim);font-size:15px}
-a{color:var(--c)}
-
-.gear{background:none;border:0;color:var(--dim);padding:6px;min-width:40px;min-height:40px;display:flex;align-items:center;justify-content:center}
-.gear svg{width:22px;height:22px}.gear.act{color:var(--c)}
-.gph h4{margin:0;font-size:18px}.gph .prog{color:var(--dim);font-size:13px}
-.when{color:var(--a);font-size:14px;margin-top:4px}
-.bar{height:6px;background:var(--p2);border-radius:9px;margin-top:10px;overflow:hidden}.bar i{display:block;height:100%;background:var(--c)}
-.gcur{border-color:var(--c);min-height:190px}
-.gs .tag{display:inline-block;font-size:12px;padding:2px 9px;border-radius:99px;background:var(--p2);color:var(--dim);border:1px solid var(--line);margin-right:6px}
-.gs .tag.me{color:#04121c;background:var(--g);border-color:var(--g)}
-.gs .hint{font-size:12px;color:var(--dim)}
-.gs .gi{font-family:"B612 Mono",monospace;font-size:clamp(22px,5vw,30px);margin-top:12px;line-height:1.2}
-.gs .gi small{display:block;font-size:13px;color:var(--dim);margin-top:4px}
-.gs .gv{font-family:"B612 Mono",monospace;font-size:clamp(20px,4.4vw,26px);color:var(--c);margin-top:6px}
-.gs.other .gi{color:var(--dim)}
-.gs .gn{color:var(--dim);font-size:15px;margin-top:10px}
-.gs .bubble{font-size:clamp(20px,4.6vw,26px);margin-top:12px;color:var(--ink);background:var(--p2);border-radius:14px;padding:12px 16px;border:1px solid var(--line)}
-.gs.call.mine .bubble{border-color:var(--g)}
-.gs.cl .gi{margin-bottom:12px}
-.gs.funk .gi{font-size:20px;margin:12px 0}
-.gnav{justify-content:space-between;margin:4px 0 12px}.gnav .btn.gbig{flex:1;min-height:60px;font-size:18px}
-.btn[disabled]{opacity:.4}
-.glist{margin:0;padding-left:26px;font-size:14px;color:var(--ink)}
-.glist li{padding:6px 2px;border-top:1px dashed var(--line);cursor:pointer}
-.glist li.done{color:var(--dim);text-decoration:line-through}.glist li.cur{color:var(--c);font-weight:700}
+.modal .box{background:var(--p1);border:1px solid var(--line);border-radius:16px;padding:18px;width:min(420px,100%)}
+.modal .box h3{color:var(--ink);font-size:16px;text-transform:none;letter-spacing:0;margin:0 0 10px}
 select{appearance:auto}
-@media(max-width:600px){header .rt{font-size:12px}.say{font-size:17px}.stn .role{width:58px}}
-@media(prefers-reduced-motion:no-preference){.card{animation:in .25s ease-out}@keyframes in{from{opacity:0;transform:translateY(4px)}}}
+@media(prefers-reduced-motion:no-preference){section.tab.act{animation:in .2s ease-out}@keyframes in{from{opacity:0}}}
 </style>
 </head>
 <body>
@@ -156,10 +136,10 @@ select{appearance:auto}
       <input id="sbUser" style="flex:1 1 220px;text-transform:none" placeholder="SimBrief-Benutzername" autocomplete="off">
       <button class="btn" id="sbLoad">Letzten Plan laden</button>
     </div>
-    <div class="msg" id="sbMsg">Lädt deinen zuletzt erstellten SimBrief-Flugplan.</div>
+    <div class="msg" id="sbMsg">Lädt deinen zuletzt erstellten Plan. Leere Felder sind gelb umrandet.</div>
   </div>
   <div class="card">
-    <h3>Flugdaten <span style="font-size:12px">· gelb = noch leer, alles änderbar</span></h3>
+    <h3>Flugdaten</h3>
     <div class="grid" id="fGrid"></div>
     <label class="f" style="margin-top:10px">Route<textarea id="f-route" data-k="route"></textarea></label>
   </div>
@@ -168,15 +148,13 @@ select{appearance:auto}
 
 <!-- FUNK -->
 <section class="tab" id="t-funk">
-  <div class="phases" id="phases"></div>
+  <div class="phs" id="phases"></div>
   <div id="funkBody"></div>
 </section>
 
 <!-- CHECKLISTEN -->
 <section class="tab" id="t-check">
-  <div class="row" style="justify-content:space-between"><h2>Checklisten</h2><button class="btn ghost" id="ckReset">Alle zurücksetzen</button></div>
   <div id="ckBody"></div>
-  <p class="msg" id="ckNote">A320 Normal Checklist. Werte in Cyan kommen aus deinen Flugdaten, ____ trägst du unter Flug ein. Tippe einen Punkt zum Abhaken.</p>
 </section>
 
 <!-- KARTE -->
@@ -194,19 +172,13 @@ select{appearance:auto}
 
 <!-- INFO -->
 <section class="tab" id="t-info">
-  <h2>Wetter & ATIS</h2>
+  <h2>Wetter</h2>
   <div class="two" id="infoBody"></div>
   <div class="card"><h3>Karten</h3><a href="https://charts.navigraph.com/" target="_blank" rel="noopener" class="btn ghost" style="display:inline-block;text-decoration:none">Navigraph Charts öffnen</a></div>
 </section>
 </main>
 
-<div class="quick hide" id="quick">
-  <button data-q="sayagain">Say again</button>
-  <button data-q="standby">Standby</button>
-  <button data-q="unable">Unable</button>
-  <button data-q="sp" id="spBtn">Aussprache</button>
-  <button data-q="em" class="em">Notfall</button>
-</div>
+
 
 <nav id="nav">
   <button data-t="flug"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 16l20-6-20-6 4 6-4 6z"/></svg>Flug</button>
@@ -362,14 +334,14 @@ function phrase(tpl){
     const m=part.match(/^\{(\w+)\}$/);
     if(!m){disp+=esc(part);spk.push(part);return}
     const k=m[1];
-    if(k in CTX){const v=CTX[k];disp+=`<span class="chip fix">${esc(v.d)}</span>`;spk.push(v.s);return}
+    if(k in CTX){const v=CTX[k];disp+=esc(v.d);spk.push(v.s);return}
     const v=F()[k];const meta=K[k]||{l:k};
-    if(v){disp+=`<span class="chip ok" data-e="${k}">${esc(k==='climb'&&v==='VIA SID'?'climb via SID':v)}</span>`;spk.push(meta.sp?meta.sp(v):v)}
-    else{disp+=`<span class="chip miss" data-e="${k}">${esc(meta.l)}</span>`;spk.push('['+meta.l+']')}
+    if(v){disp+=`<span class="vok" data-e="${k}">${esc(k==='climb'&&v==='VIA SID'?'climb via SID':v)}</span>`;spk.push(meta.sp?meta.sp(v):v)}
+    else{disp+=`<span class="vmiss" data-e="${k}">${esc(meta.l)}</span>`;spk.push('['+meta.l+']')}
   });
   return`<div class="say">${disp}</div><div class="sp">${esc(spk.join('').replace(/\s+/g,' ').replace(/\s,/g,','))}</div>`;
 }
-const rb=a=>`<div class="lbl">ZURÜCKLESEN</div><div class="rb">${a.map(x=>`<span>${esc(x)}</span>`).join('')}</div>`;
+const rb=a=>`<div class="lbl">Zurücklesen</div><div class="rb">${a.map(x=>`<span>${esc(x)}</span>`).join('')}</div>`;
 
 /* ---------- Funk-Daten ---------- */
 const PH=[['boden','Boden'],['abflug','Abflug'],['reise','Reiseflug'],['anflug','Anflug'],['landung','Landung']];
@@ -432,59 +404,43 @@ function stnCtx(role,side){
 }
 
 /* ---------- Funk rendern ---------- */
+const INITROLE={DEP:['DEP','dep'],CTR:['CTR','dep'],APP:['APP','arr'],TWRarr:['TWR','arr'],GNDarr:['GND','arr'],DEL:['DEL','dep'],GND:['GND','dep'],TWRdep:['TWR','dep']};
+const TIPS={DEP:'Höhe, die du durchfliegst, freigegebene Höhe, SID oder Heading.',CTR:'Callsign, Höhe und was du gerade fliegst. Im Steig- oder Sinkflug: „passing … climbing …“.',APP:'Höhe, STAR und ATIS-Kennung des Zielplatzes.',TWRarr:'Anflugart und Piste – mehr nicht.',GNDarr:'Piste frei und gewünschter Stand.'};
 function renderFunk(){
   $('#phases').innerHTML=PH.map(([k,n])=>`<button data-ph="${k}" class="${S.phase===k?'act':''}">${n}</button>`).join('');
-  const ph=S.phase;let h='';
-  // Stationen
-  h+=`<div class="card"><h3>Stationen ${V.t?'· VATSIM live':'· warte auf VATSIM …'}</h3>`;
-  STN[ph].forEach(([role,side])=>{
-    const icao=side==='arr'?F().arr:F().dep;const c=cover(role,icao);
-    h+=`<div class="stn"><span class="role">${role==='DEP'?'Departure':ROLEWORD[role]}<br>${esc(icao||'')}</span><span class="who">${c?esc(c.cs)+(c.covering?' <span style="color:var(--dim);font-size:13px">(übernimmt)</span>':''):'<span class="empty">niemand online</span>'}</span>${c?`<span class="fq">${esc(c.freq)}</span>`:`<span class="fq off">Unicom 122.800</span>`}</div>`;
-  });
-  h+=`</div>`;
-  // Anfragen
-  h+=`<div class="reqs">`+REQ[ph].map((q,i)=>`<button data-rq="${i}" class="${S.req===ph+i?'act':''}">${esc(q.n)}</button>`).join('')+`</div>`;
-  const qi=S.req&&S.req.startsWith(ph)?+S.req.slice(ph.length):0;const q=REQ[ph][qi]||REQ[ph][0];
-  h+=`<div class="card ${S.sp?'show-sp':''}" id="reqCard">`+(q.clr?clrCard():q.init?initCard(q.init):reqCard(q))+`</div>`;
+  const ph=S.phase,reqs=REQ[ph];
+  let qi=S.req&&S.req.startsWith(ph)?+S.req.slice(ph.length):0;if(!reqs[qi])qi=0;const q=reqs[qi];
+  let role,side;
+  if(q.clr){role='DEL';side='dep'}else if(q.init){[role,side]=INITROLE[q.init]}else{role=q.r==='DEP'?'DEP':q.r;side=(q.r==='APP'||ph==='landung'||ph==='anflug')?'arr':'dep'}
+  const st=stnCtx(role,side);CTX={stn:st};const c=st.c;
+  const icao=side==='arr'?F().arr:F().dep;const at=atisOf(icao,side);
+  let h=`<p class="lbl" style="margin-top:0">Jetzt rufen</p><div class="stn-name">${esc(st.d)}</div>`;
+  h+=c?`<div class="freq">${esc(c.freq)}</div><p class="sub">${esc(c.cs)}${c.covering?' · übernimmt '+esc(role==='DEP'?'Departure':ROLEWORD[role]):''}${at?' · ATIS '+esc(at.code||'?')+' auf '+esc(at.freq):''}</p>`
+       :`<div class="freq off">122.800</div><p class="sub">Niemand online – Unicom, Absichten blind senden${at?' · ATIS '+esc(at.code||'?'):''}</p>`;
+  h+=`<div class="${S.sp?'show-sp':''}">`;
+  if(q.clr)h+=clrBlock();
+  else if(q.init)h+=`<p class="lbl">Du sagst</p>${phrase(INIT[q.init])}<p class="sub" style="margin-top:8px">${esc(TIPS[q.init]||'')}</p>`;
+  else h+=`<p class="lbl">Du sagst</p>${phrase(q.you)}<p class="lbl">ATC antwortet meist</p><div class="atcl">${phrase(q.atc)}</div>${rb(q.rb)}`;
+  h+=`</div><button class="tiny" data-q="sp">${S.sp?'Aussprache ausblenden':'Aussprache zeigen'}</button>`;
+  h+=`<div class="bar"><div class="reqbar">${reqs.map((r,i)=>`<button class="chip ${i===qi?'on':''}" data-rq="${i}">${esc(r.n)}</button>`).join('')}<span class="sep"></span><button class="chip" data-q="sayagain">Say again</button><button class="chip" data-q="standby">Standby</button><button class="chip" data-q="unable">Unable</button><button class="chip em" data-q="em">Notfall</button></div></div>`;
   $('#funkBody').innerHTML=h;
-  if(!S.req)S.req=ph+'0';
-  $$('.reqs button')[qi]?.classList.add('act');
 }
-function initCard(kind){
-  const map={DEP:['DEP','dep'],CTR:['CTR','dep'],APP:['APP','arr'],TWRarr:['TWR','arr'],GNDarr:['GND','arr'],DEL:['DEL','dep'],GND:['GND','dep'],TWRdep:['TWR','dep']};
-  const[role,side]=map[kind];const st=stnCtx(role,side);CTX={stn:st};
-  const tips={DEP:'Höhe, die du gerade durchfliegst, und die freigegebene Höhe – dazu SID oder Heading.',CTR:'Nur Callsign, Höhe und was du gerade fliegst. Steigst oder sinkst du, sag „passing … climbing …“.',APP:'Höhe, STAR und die ATIS-Kennung des Zielflughafens.',TWRarr:'Anflugart und Piste – mehr nicht.',GNDarr:'Piste frei und gewünschter Stand.'};
-  return`<h3>Erstanruf · ${st.c?esc(st.c.cs)+' · <span class="mono" style="color:var(--g)">'+esc(st.c.freq)+'</span>':'Station offline – Unicom 122.800'}</h3>`+phrase(INIT[kind])+`<div class="lbl">MERKHILFE</div><div class="atc">${esc(tips[kind]||'')}</div><div class="msg">Tippe auf einen Baustein, um ihn zu ändern.</div>`;
-}
-function reqCard(q){
-  const side=['APP'].includes(q.r)||S.phase==='landung'||S.phase==='anflug'?'arr':'dep';
-  CTX={stn:stnCtx(q.r==='DEP'?'DEP':q.r,side)};
-  return`<div class="lbl">DU</div>${phrase(q.you)}<div class="lbl">ATC ANTWORTET MEIST</div><div class="atc">${phrase(q.atc)}</div>${rb(q.rb)}`;
-}
-function clrCard(){
-  const f=F();const st=stnCtx('DEL','dep');CTX={stn:st};
-  const dep=(f.dep||'').toUpperCase();
-  let sids=[...new Set([f.sid,...(S.mem[dep]||[])].filter(Boolean).map(s=>s.toUpperCase()))];
-  const ef=(f.exitFix||'').toUpperCase();
+function clrBlock(){
+  const f=F();const dep=(f.dep||'').toUpperCase();const ef=(f.exitFix||'').toUpperCase();
+  let sids=[...new Set([f.sid,...(S.mem[dep]||[])].filter(Boolean).map(x=>x.toUpperCase()))];
   sids.sort((a,b)=>(b===f.sid)-(a===f.sid)||(ef&&b.startsWith(ef.slice(0,4)))-(ef&&a.startsWith(ef.slice(0,4))));
   const at=atisOf(dep,'dep');
-  let warn='';if(at&&at.rwy&&f.depRwy&&!at.rws.includes(f.depRwy.toUpperCase()))warn=`<div class="warnbox">ATIS meldet Piste ${esc(at.rwy)}, geplant ist ${esc(f.depRwy)} – die SID ändert sich wahrscheinlich. <button class="btn ghost" data-act="takeRwy" style="min-height:34px;padding:4px 10px;margin-left:6px">Piste ${esc(at.rwy)} übernehmen</button></div>`;
-  const sel=f.clrType==='sid'?f.sid:'';
-  let h=`<h3>Clearance · ${st.c?esc(st.c.cs)+' · <span class="mono" style="color:var(--g)">'+esc(st.c.freq)+'</span>':'Delivery offline – nächste Station rufen'}</h3>`;
-  h+=`<div class="lbl">DU</div>`+phrase(INIT.DEL);
-  h+=`<div class="lbl">DEPARTURE – TIPPE, WAS DER LOTSE SAGT</div><div class="opts">`+sids.map(s=>`<button data-sid="${esc(s)}" class="${f.clrType==='sid'&&sel===s?'sel':''} ${s===f.sid&&S.mem.__plan!==s?'':''}">${esc(s)}</button>`).join('')+
-    `<button data-sid="__other">Andere SID …</button><button data-clr="vec" class="${f.clrType==='vec'?'sel':''}">Radar vectors</button><button data-clr="hdg" class="${f.clrType==='hdg'?'sel':''}">Heading …</button></div>`;
-  if(ef)h+=`<div class="msg">Deine Route verlässt den Platz über ${esc(ef)} – SIDs mit diesem Namen passen.</div>`;
-  h+=`<div class="lbl">STEIGEN</div><div class="opts">`+['VIA SID','4000','5000','6000','FL70','FL100'].map(c=>`<button data-climb="${c}" class="${f.climb===c?'sel':''}">${c==='VIA SID'?'Climb via SID':c}</button>`).join('')+`<button data-climb="__other">Andere …</button></div>`;
-  h+=`<div class="lbl">SQUAWK</div><div class="opts"><button data-e="squawk" class="${f.squawk?'sel':''}">${f.squawk?esc(f.squawk):'Squawk eintragen'}</button></div>`;
-  h+=warn;
+  let h=`<p class="lbl">Du sagst</p>${phrase(INIT.DEL)}`;
+  h+=`<p class="lbl">Departure</p><div class="opts">`+sids.map(x=>`<button data-sid="${esc(x)}" class="${f.clrType==='sid'&&f.sid===x?'sel':''}">${esc(x)}</button>`).join('')+
+     `<button data-clr="vec" class="${f.clrType==='vec'?'sel':''}">Vectors</button><button data-clr="hdg" class="${f.clrType==='hdg'?'sel':''}">Heading</button><button data-sid="__other">Andere</button></div>`;
+  h+=`<p class="lbl">Steigen</p><div class="opts">`+['VIA SID','5000','6000','FL70','FL100'].map(x=>`<button data-climb="${x}" class="${f.climb===x?'sel':''}">${x==='VIA SID'?'via SID':x}</button>`).join('')+`<button data-climb="__other">Andere</button></div>`;
+  h+=`<p class="lbl">Squawk</p><div class="opts"><button data-e="squawk" class="${f.squawk?'sel':''}">${f.squawk?esc(f.squawk):'eintragen'}</button></div>`;
+  if(at&&at.rwy&&f.depRwy&&!at.rws.includes(f.depRwy.toUpperCase()))h+=`<div class="warnbox">ATIS meldet ${esc(at.rws.join(' / '))}, geplant ist ${esc(f.depRwy)} – SID ändert sich wahrscheinlich.<button data-act="takeRwy">${esc(at.rwy)} übernehmen</button></div>`;
   const dpt=f.clrType==='vec'?'radar vectors':f.clrType==='hdg'?'heading {hdg}':'{sid} departure';
   const climb=f.climb==='VIA SID'?'climb via SID':'initial climb {climb}';
-  h+=`<div class="lbl">ATC</div><div class="atc">${phrase('{cs}, cleared to {arr}, '+dpt+', runway {depRwy}, '+climb+', squawk {squawk}')}</div>`;
-  h+=`<div class="lbl">DEIN READBACK</div>`+phrase('Cleared to {arr}, '+dpt+', runway {depRwy}, '+climb+', squawk {squawk}, {cs}');
+  h+=`<p class="lbl">Zurücklesen</p><div class="rbk">${phrase('Cleared to {arr}, '+dpt+', runway {depRwy}, '+climb+', squawk {squawk}, {cs}')}</div>`;
   return h;
 }
-
 /* ---------- Checklisten ---------- */
 const CK=[
  {id:'bs',n:'Before Start',ph:'boden',it:[['Cockpit prep','COMPLETE (BOTH)'],['Gear pins and covers','REMOVED'],['Signs','ON / AUTO'],['ADIRS','NAV'],['Fuel quantity','{fuel}'],['TO data','SET'],['Baro ref','{qnhDep} SET (BOTH)'],'LINE',['Windows / doors','CLOSED (BOTH)'],['Beacon','ON'],['Thr levers','IDLE'],['Parking brake','AS RQRD']]},
@@ -499,16 +455,6 @@ const CK=[
  {id:'ev',n:'On Ground Emer Evacuation',ph:'',em:1,it:[['Aircraft / parking brk','STOP / ON'],['ATC (VHF 1)','NOTIFY'],['ΔP (only if MAN CAB PR has been used)','CHECK ZERO','If not zero, MODE SEL on MAN and V/S CTL FULL UP'],['ENG master 1 and 2','OFF'],['Cabin crew (PA)','NOTIFY'],['Fire P/Bs (ENG and APU)','PUSH'],['Agents (ENG and APU)','AS RQRD'],['Evacuation','INITIATE']]}
 ];
 const fill=s=>s.replace(/\{(\w+)\}/g,(_,k)=>F()[k]||'____');
-function renderCheck(){
-  const g=S.set&&S.set.mode==='guided';$('#ckReset').style.display=g&&!S.showList?'none':'';$('#ckNote').style.display=g&&!S.showList?'none':'';
-  if(g&&!S.showList){renderGuided();return}
-  $('#ckBody').innerHTML=(g?'<div class="row" style="margin-bottom:10px"><button class="btn" id="gBackGuide">← Zurück zum geführten Ablauf</button></div>':'')+CK.map(c=>{
-    const items=c.it.map((x,i)=>[x,i]).filter(([x])=>x!=='LINE');
-    const done=items.filter(([_,i])=>S.ck[c.id+i]).length,all=done===items.length;
-    const open=c.ph===S.phase&&!all&&!CK.some(o=>o.ph===S.phase&&o!==c&&CK.indexOf(o)<CK.indexOf(c)&&!o.it.every((x,i)=>x==='LINE'||S.ck[o.id+i]));
-    return`<details class="card ck ${all?'done':''} ${c.em?'em':''}" ${open?'open':''}><summary><h4>${esc(c.n.toUpperCase())}<span class="prog">${all?'✓ COMPLETE':done+' / '+items.length}</span></h4></summary><ul>`+
-      c.it.map((x,i)=>x==='LINE'?'<li class="line">below the line</li>':`<li data-ck="${c.id+i}" class="${S.ck[c.id+i]?'on':''}"><span class="i">${esc(x[0].toUpperCase())}${x[2]?`<small>${esc(x[2])}</small>`:''}</span><span class="v">${esc(fill(x[1]))}</span></li>`).join('')+`</ul>${c.note?`<div class="msg">${esc(c.note)}</div>`:''}</details>`}).join('');
-}
 /* ---------- Geführte Procedures ----------
    Ablauf nach Airbus-A320-SOP-Struktur (Flows + Normal Checklist).
    Abgeglichen mit: FlyByWire A32NX SOP, TheAirlinePilots „A320 Normal Procedures" (2025),
@@ -1018,10 +964,9 @@ S.g={p:0,i:0,done:{},...(S.g||{})};
 const SETS=[
  ['seat','Sitz',[['CA','Captain (links)'],['FO','First Officer (rechts)']]],
  ['role','Rolle',[['PF','Pilot Flying'],['PM','Pilot Monitoring']]],
- ['mode','Hilfe-Stufe',[['list','Nur Checklisten'],['guided','Geführt (Procedures + Checklisten)']]],
+ ['mode','Checklisten-Tab',[['list','Nur Normal Checklist'],['guided','Mit Leitfaden (Procedures + Checklist)']]],
  ['detail','Detail',[['voll','Voll – alles'],['kurz','Kurz – ohne Tests und Nebenpunkte']]],
- ['other','Aufgaben der anderen Seite',[[true,'Anzeigen'],[false,'Ausblenden']]],
- ['tts','Vorlesen (andere Seite + Checklisten-Fragen)',[[true,'An'],[false,'Aus']]]
+ ['other','Schritte der anderen Seite im Leitfaden',[[true,'Anzeigen'],[false,'Ausblenden']]],
 ];
 function renderSet(){
   $('#setBody').innerHTML=SETS.map(([k,l,o])=>`<div class="card"><h3>${esc(l)}</h3><div class="opts">${o.map(([v,t])=>`<button data-set="${k}" data-v="${v}" class="${S.set[k]===v?'sel':''}">${esc(t)}</button>`).join('')}</div></div>`).join('')+
@@ -1030,7 +975,7 @@ function renderSet(){
    <div class="card"><h3>Quellen</h3><p class="msg">Abläufe nach Airbus-A320-SOP-Struktur, abgeglichen mit der FlyByWire A32NX SOP, „A320 Normal Procedures" (TheAirlinePilots, 2025) und JayDees Fenix-A320-Guide v1.31.1 (Fenix-spezifische Schritte). Nur für die Flugsimulation.</p></div>`;
 }
 
-/* ---------- Geführter Modus ---------- */
+/* ---------- Checklisten-Seiten ---------- */
 const CKMAP=Object.fromEntries(CK.map(c=>[c.id,c]));
 function steps(ph){
   const out=[];
@@ -1064,84 +1009,48 @@ function who(r){
   return{mine:true,lbl:r};
 }
 const fillG=s=>String(s).replace(/\{(\w+)\}/g,(_,k)=>F()[k]||'____');
-const PHX=()=>FLOWS[S.g.p]||FLOWS[0];
-let lastSpoken='';
-function speak(t){
-  if(!S.set.tts||!('speechSynthesis' in window))return;
-  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t.replace(/…/g,', '));u.lang='en-US';u.rate=1.02;speechSynthesis.speak(u)}catch(e){}
-}
-function stepView(st,big){
-  if(st.k==='do'){const w=who(st.r);
-    return`<div class="gs ${w.mine?'mine':'other'}"><span class="tag ${w.mine?'me':''}">${esc(w.lbl)}</span>${!w.mine&&big?'<span class="hint">im Sim machst du das selbst</span>':''}
-      <div class="gi">${esc(fillG(st.i))}</div><div class="gv">${esc(fillG(st.s))}</div>${st.n?`<div class="gn">${esc(fillG(st.n))}</div>`:''}</div>`}
-  if(st.k==='call'){const w=who(st.r);
-    return`<div class="gs call ${w.mine?'mine':'other'}"><span class="tag ${w.mine?'me':''}">${esc(w.mine?'DU SAGST ('+st.r+')':st.r+' SAGT')}</span><div class="bubble">„${esc(fillG(st.t))}"</div></div>`}
-  if(st.k==='clh')return`<div class="gs clh"><span class="tag">CHECKLISTE</span><div class="gi">${esc(st.n.toUpperCase())}</div><div class="gn">${st.part==='down'?'bis zur Linie (down to the line)':st.part==='below'?'unter der Linie (below the line)':'komplett'} · PM liest, PF antwortet</div></div>`;
-  if(st.k==='cl'){const me=S.set.role,both=/BOTH/.test(st.v);
-    const reader=me==='PM'?'DU (PM) liest':'PM liest';const ans=both?'BEIDE antworten':me==='PF'?'DU (PF) antwortest':'PF antwortet';
-    return`<div class="gs cl"><span class="tag">${esc(reader)}</span><div class="gi">${esc(st.c.toUpperCase())}${st.sub?`<small>${esc(st.sub)}</small>`:''}</div><span class="tag ${me==='PF'||both?'me':''}">${esc(ans)}</span><div class="gv">${esc(fillG(st.v))}</div></div>`}
-  if(st.k==='cle')return`<div class="gs clh"><span class="tag">PM</span><div class="bubble">„${esc(st.n)} checklist ${st.part==='down'?'down to the line':'complete'}."</div></div>`;
-  if(st.k==='funk')return`<div class="gs funk"><span class="tag">FUNK</span><div class="gi">${esc(st.label)}</div><button class="btn" data-gfunk="${esc(st.fp)}|${esc(st.rq)}">Im Funk-Tab öffnen</button></div>`;
-  return'';
-}
-function sayFor(st){
-  const me=S.set.role;
-  if(st.k==='call'&&!who(st.r).mine)return fillG(st.t);
-  if(st.k==='cl')return me==='PF'?st.c:fillG(st.v).replace(/_+/g,'');
-  if(st.k==='clh'&&me==='PF')return st.n+' checklist'+(st.part==='below'?', below the line':'');
-  if(st.k==='cle'&&me==='PF')return st.n+' checklist '+(st.part==='down'?'down to the line':'complete');
-  return'';
-}
-function renderGuided(){
-  const ph=PHX(),list=steps(ph);if(S.g.i>=list.length)S.g.i=Math.max(0,list.length-1);
-  const st=list[S.g.i];const pct=Math.round(S.g.i/Math.max(1,list.length-1)*100);
-  const nextIdx=FLOWS.findIndex((p,i)=>i>S.g.p&&!p.opt);
-  let h=`<div class="row" style="margin-bottom:10px"><select id="gSel" style="flex:1 1 240px;text-transform:none;color:var(--ink)">${FLOWS.map((p,i)=>`<option value="${i}" ${i===S.g.p?'selected':''}>${S.g.done[p.id]?'✓ ':''}${i+1}. ${esc(p.n)}${p.opt?' (optional)':''}</option>`).join('')}</select><button class="btn ghost" id="gList">Normal Checklist</button></div>`;
-  h+=`<div class="card gph"><div class="row" style="justify-content:space-between"><h4>${esc(ph.n)}</h4><span class="prog">${S.g.i+1} / ${list.length}</span></div>
-     <div class="when">WANN: ${esc(fillG(ph.t))}</div><div class="bar"><i style="width:${pct}%"></i></div></div>`;
-  h+=`<div class="card gcur">${st?stepView(st,true):'<p class="empty">Keine Schritte (Detailstufe).</p>'}</div>`;
-  const atEnd=S.g.i>=list.length-1;
-  h+=`<div class="row gnav"><button class="btn ghost" id="gBack" ${S.g.i===0?'disabled':''}>Zurück</button>`+
-     (atEnd?`<button class="btn gbig" id="gPhase">${nextIdx>=0?'Phase fertig → '+esc(FLOWS[nextIdx].n):'Flug beendet ✓'}</button>`:`<button class="btn gbig" id="gNext">Erledigt</button>`)+`</div>`;
-  if(['final','land'].includes(ph.id))h+=`<div class="row" style="margin-top:8px"><button class="btn warn" id="gGA">Go Around</button></div>`;
-  h+=`<div class="card"><h3>Alle Schritte dieser Phase</h3><ol class="glist">${list.map((s,i)=>`<li data-gi="${i}" class="${i<S.g.i?'done':i===S.g.i?'cur':''}">${esc(shortTxt(s))}</li>`).join('')}</ol></div>`;
+S.x=S.x||{};
+function pages(){return S.set.mode==='guided'?FLOWS.map(p=>({id:p.id,n:p.n,t:p.t,opt:p.opt,f:p.f,p})):CK.filter(c=>!c.em).map(c=>({id:c.id,n:c.n,t:'',f:c.ph||S.phase,c}))}
+const pkey=()=>S.set.mode==='guided'?'p':'c';
+function rowDo(i,v,key,who,note,other){return`<div class="r ${S.x[key]?'x':''} ${other?'other':''}" data-x="${key}"><span class="who">${esc(who||'')}</span><span class="i">${esc(i)}</span><span class="dots"></span><span class="v">${esc(v)}</span></div>${note?`<div class="note">${esc(note)}</div>`:''}`}
+function renderCheck(){
+  const P=pages(),k=pkey();let i=S.g[k]||0;if(i>=P.length)i=0;S.g[k]=i;const pg=P[i];
+  const ni=P.findIndex((x,j)=>j>i&&!x.opt);
+  let h=`<div class="pghead"><p class="lbl">${S.set.mode==='guided'?'Phase':'Checkliste'} ${i+1} / ${P.length}</p><select id="pgSel" aria-label="Phase wählen">${P.map((x,j)=>`<option value="${j}" ${j===i?'selected':''}>${j+1}. ${esc(x.n)}</option>`).join('')}</select></div><h2>${esc(pg.n)}</h2>`;
+  h+=pg.t?`<p class="when">Wann: ${esc(fillG(pg.t))}</p>`:'<div style="height:12px"></div>';
+  if(pg.c){
+    pg.c.it.forEach((x,j)=>{if(x==='LINE'){h+='<div class="line">below the line</div>';return}h+=rowDo(x[0].toUpperCase(),fillG(x[1]),pg.id+':'+j,'',x[2]||'')});
+    if(pg.c.note)h+=`<p class="msg">${esc(pg.c.note)}</p>`;
+  }else{
+    steps(pg.p).forEach((st,j)=>{const key=pg.id+':'+j;
+      if(st.k==='do'){const w=who(st.r);h+=rowDo(fillG(st.i),fillG(st.s),key,w.mine&&!['CM','BOTH'].includes(st.r)?'':(st.r==='CM'||st.r==='BOTH'?'':st.r),S.set.detail==='voll'?fillG(st.n):'',!w.mine)}
+      else if(st.k==='call')h+=`<div class="call"><b>${esc(st.r)}</b>„${esc(fillG(st.t))}“</div>`;
+      else if(st.k==='clh')h+=`<div class="sec">${esc(st.n.toUpperCase())} CHECKLIST<small>${st.part==='down'?'bis zur Linie':st.part==='below'?'unter der Linie':''}</small></div>`;
+      else if(st.k==='cl')h+=rowDo(st.c.toUpperCase(),fillG(st.v),key,'',st.sub);
+      else if(st.k==='cle')h+=`<div class="call"><b>PM</b>„${esc(st.n)} checklist ${st.part==='down'?'down to the line':'complete'}.“</div>`;
+      else if(st.k==='funk')h+=`<button class="flink" data-gfunk="${esc(st.fp)}|${esc(st.rq)}">Funk · ${esc(st.label)} →</button>`;
+    });
+    if(['final','land'].includes(pg.id))h+=`<button class="flink" style="color:var(--r)" id="gGA">Go Around →</button>`;
+  }
+  h+=`<div class="bar"><div class="pnav"><button class="b1" id="pgPrev" aria-label="Zurück">‹</button><button class="b2" id="pgNext">${ni>=0?'Weiter: '+esc(P[ni].n):'Flug beendet'}</button></div></div>`;
   $('#ckBody').innerHTML=h;
-  const key=ph.id+':'+S.g.i;if(st&&key!==lastSpoken){lastSpoken=key;const t=sayFor(st);if(t)speak(t)}
 }
-function shortTxt(s){
-  if(s.k==='do')return`${s.r} · ${fillG(s.i)} – ${fillG(s.s)}`;
-  if(s.k==='call')return`${s.r}: „${fillG(s.t)}"`;
-  if(s.k==='cl')return`☐ ${s.c.toUpperCase()} – ${fillG(s.v)}`;
-  if(s.k==='clh')return`▸ ${s.n} Checklist ${s.part==='down'?'(bis Linie)':s.part==='below'?'(unter Linie)':''}`;
-  if(s.k==='cle')return`▸ ${s.n} checklist ${s.part==='down'?'down to the line':'complete'}`;
-  if(s.k==='funk')return`Funk: ${s.label}`;
-  return'';
-}
-function gGo(p){S.g.p=p;S.g.i=0;const ph=FLOWS[p];if(ph&&ph.f){S.phase=ph.f;S.req=null}save();renderCheck();window.scrollTo(0,0)}
-function gStep(d){
-  const list=steps(PHX());const st=list[S.g.i];
-  if(d>0&&st&&st.k==='cl')S.ck[st.ck]=true;
-  S.g.i=Math.min(Math.max(0,S.g.i+d),list.length-1);save();renderCheck();
-}
+function pgGo(n){const P=pages();if(n<0||n>=P.length)return;S.g[pkey()]=n;const f=P[n].f;if(f&&REQ[f]){S.phase=f;S.req=null}save();renderCheck();window.scrollTo(0,0)}
 $('#ckBody').addEventListener('click',e=>{
-  if(S.set.mode!=='guided'||S.showList)return;
   const t=e.target;let b;
-  if(t.closest('#gNext')){gStep(1);return}
-  if(t.closest('#gBack')){gStep(-1);return}
-  if(t.closest('#gPhase')){const list=steps(PHX());const st=list[S.g.i];if(st&&st.k==='cl')S.ck[st.ck]=true;S.g.done[PHX().id]=1;const n=FLOWS.findIndex((p,i)=>i>S.g.p&&!p.opt);if(n>=0)gGo(n);else{save();renderCheck()}return}
-  if(t.closest('#gGA')){gGo(FLOWS.findIndex(p=>p.id==='ga'));return}
-  if(t.closest('#gList')){S.showList=1;renderCheck();return}
-  if(b=t.closest('[data-gi]')){S.g.i=+b.dataset.gi;save();renderCheck();return}
+  if(t.closest('#pgNext')){const P=pages(),i=S.g[pkey()]||0;const ni=P.findIndex((x,j)=>j>i&&!x.opt);if(ni>=0)pgGo(ni);return}
+  if(t.closest('#pgPrev')){pgGo((S.g[pkey()]||0)-1);return}
+  if(t.closest('#gGA')){pgGo(FLOWS.findIndex(p=>p.id==='ga'));return}
   if(b=t.closest('[data-gfunk]')){const[fp,rq]=b.dataset.gfunk.split('|');S.phase=fp;const i=REQ[fp].findIndex(q=>q.n===rq);S.req=fp+(i<0?0:i);save();tab('funk');return}
+  if(b=t.closest('[data-x]')){const k=b.dataset.x;S.x[k]=!S.x[k];save();b.classList.toggle('x',!!S.x[k])}
 });
-$('#ckBody').addEventListener('change',e=>{if(e.target.id==='gSel')gGo(+e.target.value)});
+$('#ckBody').addEventListener('change',e=>{if(e.target.id==='pgSel')pgGo(+e.target.value)});
 $('#t-set').addEventListener('click',e=>{
   let b;if(b=e.target.closest('[data-set]')){const k=b.dataset.set;let v=b.dataset.v;if(v==='true')v=true;if(v==='false')v=false;S.set[k]=v;save();renderSet();return}
-  if(e.target.closest('#setUserSave')){S.user=$('#setUser').value.trim();save();e.target.textContent='Gespeichert ✓';return}
-  if(e.target.closest('#setNew')){ask('Neuer Flug? Tippe JA','',['JA'],0,v=>{if(v==='JA'){S.f=blank();S.ck={};S.g={p:0,i:0,done:{}};S.phase='boden';S.req=null;save();tab('flug')}})}
+  if(e.target.closest('#setUserSave')){S.user=$('#setUser').value.trim();save();e.target.textContent='Gespeichert';return}
+  if(e.target.closest('#setNew')){ask('Neuer Flug? Tippe JA','',['JA'],0,v=>{if(v==='JA'){S.f=blank();S.ck={};S.x={};S.g={p:0,c:0,done:{}};S.phase='boden';S.req=null;save();tab('flug')}})}
 });
 $('#hSet').onclick=()=>tab('set');
-
 /* ---------- Karte ---------- */
 let MAP=null,LAY=null;
 function renderMap(){
@@ -1194,7 +1103,6 @@ function head(){
 }
 function tab(t){
   S.tab=t;save();$$('section.tab').forEach(s=>s.classList.toggle('act',s.id==='t-'+t));$$('nav button').forEach(b=>b.classList.toggle('act',b.dataset.t===t));
-  $('#quick').classList.toggle('hide',t!=='funk');
   if(t==='funk')renderFunk();if(t==='check')renderCheck();if(t==='karte'){renderMap();renderOnline()}if(t==='info')renderInfo();if(t==='flug')renderForm();if(t==='set')renderSet();
   $('#hSet').classList.toggle('act',t==='set');window.scrollTo(0,0);
 }
@@ -1221,7 +1129,7 @@ $('#nav').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b
 $('#sbLoad').onclick=loadSB;
 $('#sbUser').addEventListener('keydown',e=>{if(e.key==='Enter')loadSB()});
 $('#t-flug').addEventListener('change',e=>{const k=e.target.dataset.k;if(!k)return;let v=e.target.value.trim();if(k!=='route')v=v.toUpperCase();if(['crz','clearedAlt'].includes(k))v=lvl(v);F()[k]=v;if(k==='sid')remember(F().dep,v);if(['dep','arr','altn'].includes(k))pullMetar();save();head()});
-$('#newFlight').onclick=()=>ask('Neuer Flug? Tippe JA','',['JA'],0,v=>{if(v==='JA'){S.f=blank();S.ck={};S.phase='boden';S.req=null;save();renderAll()}});
+$('#newFlight').onclick=()=>ask('Neuer Flug? Tippe JA','',['JA'],0,v=>{if(v==='JA'){S.f=blank();S.ck={};S.x={};S.g={p:0,c:0,done:{}};S.phase='boden';S.req=null;save();renderAll()}});
 $('#phases').addEventListener('click',e=>{const b=e.target.closest('[data-ph]');if(!b)return;S.phase=b.dataset.ph;S.req=S.phase+'0';save();renderFunk()});
 $('#funkBody').addEventListener('click',e=>{
   const t=e.target;let b;
@@ -1230,10 +1138,9 @@ $('#funkBody').addEventListener('click',e=>{
   if(b=t.closest('[data-clr]')){const c=b.dataset.clr;if(c==='hdg')ask('Heading',F().hdg,K.hdg.o,1,v=>{F().clrType='hdg';set('hdg',v)});else{F().clrType='vec';save();renderFunk()}return}
   if(b=t.closest('[data-climb]')){const c=b.dataset.climb;if(c==='__other')ask('Initial climb',F().climb==='VIA SID'?'':F().climb,['3000','7000','FL80'],0,v=>set('climb',lvl(v)));else set('climb',c);return}
   if(b=t.closest('[data-act="takeRwy"]')){const a=atisOf(F().dep,'dep');if(a)set('depRwy',a.rwy);return}
+  if(b=t.closest('[data-q]')){quick(b.dataset.q);return}
   if(b=t.closest('[data-e]')){editKey(b.dataset.e)}
 });
-$('#ckBody').addEventListener('click',e=>{if(e.target.closest('#gBackGuide')){S.showList=0;renderCheck();return}const li=e.target.closest('[data-ck]');if(!li)return;const k=li.dataset.ck;S.ck[k]=!S.ck[k];save();renderCheck()});
-$('#ckReset').onclick=()=>{S.ck={};save();renderCheck()};
 $('#infoBody').addEventListener('click',e=>{
   let b;if(b=e.target.closest('[data-take]')){const s=b.dataset.take;const a=atisOf(s==='dep'?F().dep:F().arr,s);if(!a)return;
     if(s==='dep'){if(a.code)F().atisDep=a.code;if(a.rwy&&!a.rws.includes((F().depRwy||'').toUpperCase()))F().depRwy=a.rwy;if(a.qnh)F().qnhDep=a.qnh}else{if(a.code)F().atisArr=a.code;if(a.rwy&&!a.rws.includes((F().arrRwy||'').toUpperCase()))F().arrRwy=a.rwy;if(a.qnh)F().qnhArr=a.qnh}
@@ -1241,11 +1148,11 @@ $('#infoBody').addEventListener('click',e=>{
   if(b=e.target.closest('[data-takeq]')){F()[b.dataset.takeq==='dep'?'qnhDep':'qnhArr']=b.dataset.q;save();b.textContent='Übernommen ✓'}
 });
 const QUICK={sayagain:['Say again','{cs}, say again'],standby:['Standby','Nur sagen, wenn ATC dich ruft und du kurz Zeit brauchst: „{cs}, standby“'],unable:['Unable','{cs}, unable … (Grund), request …'],em:['Notfall','Squawk 7700 Notfall · 7600 Funkausfall · 7500 nur real – auf VATSIM nie. Funk: „Mayday Mayday Mayday, {cs}, …“ oder „Pan-pan Pan-pan Pan-pan, {cs}, …“']};
-$('#quick').addEventListener('click',e=>{const b=e.target.closest('[data-q]');if(!b)return;const q=b.dataset.q;
-  if(q==='sp'){S.sp=!S.sp;save();b.classList.toggle('sel',S.sp);renderFunk();return}
-  const[t,x]=QUICK[q];ask(t,'',[],0,()=>{});$('#mInput').style.display='none';$('#mOpts').innerHTML=`<div class="say" style="font-size:17px">${esc(x.replace('{cs}',F().cs||'Callsign'))}</div>`;$('#mOk').textContent='OK';
+function quick(q){
+  if(q==='sp'){S.sp=!S.sp;save();renderFunk();return}
+  const[t,x]=QUICK[q];ask(t,'',[],0,()=>{});$('#mInput').style.display='none';$('#mOpts').innerHTML=`<div class="say" style="font-size:17px">${esc(x.replace('{cs}',F().cs||'Callsign'))}</div>`;
   const restore=()=>{$('#mInput').style.display=''};setTimeout(()=>{$('#mOk').addEventListener('click',restore,{once:true});$('#mCancel').addEventListener('click',restore,{once:true})},0);
-});
+}
 
 /* ---------- Start ---------- */
 if(!F().dep&&S.tab!=='flug')S.tab='flug';
