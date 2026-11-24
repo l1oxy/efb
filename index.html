@@ -90,6 +90,10 @@ a{color:var(--c)}
 .sec small{color:var(--mut);letter-spacing:0;margin-left:6px}
 .line{font-size:10px;letter-spacing:.07em;color:var(--a);text-align:center;border-top:1px solid #ffb02088;margin:8px 0 4px;padding-top:3px}
 .flink{display:block;width:100%;text-align:left;color:var(--c);font-size:13px;padding:7px 0 7px 32px}
+.fhint{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--a);margin:0 0 8px}
+.fhint span{flex:1;line-height:1.35}.fhint b{color:var(--ink);font-weight:400}
+.fhint .go{flex:none;color:var(--c);border:1px solid var(--c);border-radius:99px;padding:5px 12px;min-height:36px;font-size:13px}
+.fhint .no{flex:none;color:var(--mut);font-size:18px;width:36px;min-height:36px}
 .pnav{display:flex;gap:8px}
 .pnav .b1{width:54px;border:1px solid var(--line);border-radius:12px;color:var(--dim);font-size:20px;min-height:52px}
 .pnav .b2{flex:1;background:var(--c);color:#04121c;border-radius:12px;min-height:52px;font-weight:700;font-size:15px;padding:0 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -979,7 +983,7 @@ PM|BAT 1 + 2|OFF
 ];
 
 /* ---------- Einstellungen ---------- */
-S.set={seat:'CA',role:'PF',mode:'guided',detail:'voll',other:true,tts:false,...(S.set||{})};
+S.set={seat:'CA',role:'PF',mode:'guided',detail:'voll',other:true,tts:false,wake:true,...(S.set||{})};
 S.g={p:0,i:0,done:{},...(S.g||{})};
 const SETS=[
  ['seat','Sitz',[['CA','Captain (links)'],['FO','First Officer (rechts)']]],
@@ -987,9 +991,33 @@ const SETS=[
  ['mode','Checklisten-Tab',[['list','Nur Normal Checklist'],['guided','Mit Leitfaden (Procedures + Checklist)']]],
  ['detail','Detail',[['voll','Voll – alles'],['kurz','Kurz – ohne Tests und Nebenpunkte']]],
  ['other','Schritte der anderen Seite im Leitfaden',[[true,'Anzeigen'],[false,'Ausblenden']]],
+ ['wake','Bildschirm an lassen',[[true,'An'],[false,'Aus']]],
 ];
+/* ---------- Bildschirm an (Screen Wake Lock) ----------
+   iPadOS gibt die Sperre bei jedem App-/Tab-Wechsel frei → bei „sichtbar“ neu anfordern.
+   Safari will teils eine Berührung vorher → zusätzlich beim ersten Tippen anfordern. */
+const wlOk='wakeLock' in navigator;
+let WL=null,wlBusy=false,wlErr=false;
+function wakeTxt(){
+  if(!wlOk)return'Dieser Browser kann den Bildschirm nicht wach halten (iPad: Safari ab iPadOS 16.4).';
+  if(!S.set.wake)return'Aus – der Bildschirm geht nach der Zeit aus, die am iPad eingestellt ist.';
+  if(WL)return'Aktiv – der Bildschirm bleibt an.';
+  return wlErr?'Noch nicht aktiv – einmal irgendwo in die App tippen.':'Wird angefordert …';
+}
+function wakeMsg(){const m=$('#wakeMsg');if(m)m.textContent=wakeTxt()}
+async function wakeSync(){
+  if(!wlOk)return;
+  if(!S.set.wake){if(WL){const w=WL;WL=null;try{await w.release()}catch(e){}}wakeMsg();return}
+  if(WL||wlBusy||document.visibilityState!=='visible'){wakeMsg();return}
+  wlBusy=true;
+  try{const w=await navigator.wakeLock.request('screen');WL=w;wlErr=false;w.addEventListener('release',()=>{if(WL===w)WL=null;wakeMsg()})}
+  catch(e){WL=null;wlErr=true}
+  wlBusy=false;wakeMsg();
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')wakeSync()});
+document.addEventListener('pointerdown',()=>{if(S.set.wake&&!WL)wakeSync()},{passive:true});
 function renderSet(){
-  $('#setBody').innerHTML=SETS.map(([k,l,o])=>`<div class="card"><h3>${esc(l)}</h3><div class="opts">${o.map(([v,t])=>`<button data-set="${k}" data-v="${v}" class="${S.set[k]===v?'sel':''}">${esc(t)}</button>`).join('')}</div></div>`).join('')+
+  $('#setBody').innerHTML=SETS.map(([k,l,o])=>`<div class="card"><h3>${esc(l)}</h3><div class="opts">${o.map(([v,t])=>`<button data-set="${k}" data-v="${v}" class="${S.set[k]===v?'sel':''}">${esc(t)}</button>`).join('')}</div>${k==='wake'?`<p class="msg" id="wakeMsg">${esc(wakeTxt())}</p>`:''}</div>`).join('')+
   `<div class="card"><h3>SimBrief-Benutzername</h3><div class="row"><input id="setUser" style="flex:1 1 220px;text-transform:none" value="${esc(S.user||'')}"><button class="btn ghost" id="setUserSave">Speichern</button></div></div>
    <div class="card"><h3>Flug</h3><div class="row"><button class="btn warn" id="setNew">Neuer Flug (alles zurücksetzen)</button></div></div>
    <div class="card"><h3>Quellen</h3><p class="msg">Abläufe nach Airbus-A320-SOP-Struktur, abgeglichen mit der FlyByWire A32NX SOP, „A320 Normal Procedures" (TheAirlinePilots, 2025) und JayDees Fenix-A320-Guide v1.31.1 (Fenix-spezifische Schritte). Nur für die Flugsimulation.</p></div>`;
@@ -1032,6 +1060,32 @@ const fillG=s=>String(s).replace(/\{(\w+)\}/g,(_,k)=>F()[k]||'____');
 S.x=S.x||{};
 function pages(){return S.set.mode==='guided'?FLOWS.map(p=>({id:p.id,n:p.n,t:p.t,opt:p.opt,f:p.f,p})):CK.filter(c=>!c.em).map(c=>({id:c.id,n:c.n,t:'',f:c.ph||S.phase,c}))}
 const pkey=()=>S.set.mode==='guided'?'p':'c';
+/* ---------- Funk ⇄ Checkliste: die Checkliste führt ----------
+   Jede Checklisten-Seite hat ihre Funk-Anfrage. „Weiter“/Seitenwechsel stellt den Funk-Tab darauf.
+   Ist der Funk weiter als die Checkliste, zeigt die Checkliste nur einen Hinweis (Sprung per Tipp).
+   Rückwärts im Funk (Clearance noch mal ansehen …) ändert an der Checkliste nie etwas. */
+const FQ={
+ prelim:'boden:Clearance',walk:'boden:Clearance',ovhd:'boden:Clearance',ped:'boden:Clearance',glare:'boden:Clearance',brief:'boden:Clearance',
+ bpush:'boden:Pushback',startclr:'boden:Pushback',eng:'boden:Pushback',after:'boden:Taxi',taxi:'boden:Taxi',lineup:'boden:Ready for departure',
+ tko:'abflug:Erstanruf Departure',atko:'abflug:Erstanruf Departure',ta:'abflug:Höher steigen',climb10:'abflug:Höher steigen',
+ cruise:'reise:Erstanruf Center',dprep:'reise:Sinkflug anfragen',tod:'reise:Sinkflug anfragen',
+ desc10:'anflug:Erstanruf Approach',tl:'anflug:Erstanruf Approach',iapp:'anflug:Anflug wünschen',
+ final:'landung:Erstanruf Tower',land:'landung:Erstanruf Tower',ga:'landung:Go-around',alnd:'landung:Runway vacated',park:'landung:Taxi to stand',secure:'landung:Taxi to stand',
+ /* Modus „Nur Normal Checklist“ */
+ bs:'boden:Pushback',as:'boden:Taxi',bt:'boden:Ready for departure',at:'abflug:Erstanruf Departure',ap:'anflug:Erstanruf Approach',ld:'landung:Erstanruf Tower',al:'landung:Runway vacated',pk:'landung:Taxi to stand',sa:'landung:Taxi to stand'
+};
+const RSEQ=PH.flatMap(([p])=>REQ[p].map((_,i)=>p+i));  /* alle Anfragen in Flugreihenfolge */
+const rpos=r=>r?RSEQ.indexOf(r):-1;
+const rPh=r=>r.replace(/\d+$/,''),rQ=r=>REQ[rPh(r)][+r.match(/\d+$/)[0]];
+function pageReq(pg){const m=pg&&FQ[pg.id];if(!m)return null;const[p,n]=m.split(':');const i=REQ[p]?REQ[p].findIndex(q=>q.n===n):-1;return i<0?null:p+i}
+function funkReq(){const p=S.phase;if(!REQ[p])return null;const i=S.req&&S.req.startsWith(p)?+S.req.slice(p.length):0;return p+(REQ[p][i]?i:0)}
+function funkAhead(){
+  const P=pages(),i=S.g[pkey()]||0,pc=rpos(pageReq(P[i])),r=funkReq(),pf=rpos(r);
+  if(pf<0||pf<=pc||S.hintNo===r)return null;
+  let best=-1,bp=-1;
+  P.forEach((x,j)=>{if(j<=i)return;const p=rpos(pageReq(x));if(p<=pc||p>pf||(x.opt&&p!==pf))return;if(p>bp){bp=p;best=j}});
+  return best<0?null:{j:best,r};
+}
 function rowDo(i,v,key,who,note,other){return`<div class="r ${S.x[key]?'x':''} ${other?'other':''}" data-x="${key}"><span class="who">${esc(who||'')}</span><span class="i">${esc(i)}</span><span class="dots"></span><span class="v">${esc(v)}</span></div>${note?`<div class="note">${esc(note)}</div>`:''}`}
 function renderCheck(){
   const P=pages(),k=pkey();let i=S.g[k]||0;if(i>=P.length)i=0;S.g[k]=i;const pg=P[i];
@@ -1052,21 +1106,28 @@ function renderCheck(){
     });
     if(['final','land'].includes(pg.id))h+=`<button class="flink" style="color:var(--r)" id="gGA">Go Around →</button>`;
   }
-  h+=`<div class="bar"><div class="pnav"><button class="b1" id="pgPrev" aria-label="Zurück">‹</button><button class="b2" id="pgNext">${ni>=0?'Weiter: '+esc(P[ni].n):'Flug beendet'}</button></div></div>`;
+  const ah=funkAhead();
+  h+=`<div class="bar">${ah?`<div class="fhint"><span>Funk ist bei <b>${esc(rQ(ah.r).n)}</b> – Checkliste zu ${esc(P[ah.j].n)} springen?</span><button class="go" id="fhGo">Springen</button><button class="no" id="fhNo" aria-label="Hinweis ausblenden">×</button></div>`:''}<div class="pnav"><button class="b1" id="pgPrev" aria-label="Zurück">‹</button><button class="b2" id="pgNext">${ni>=0?'Weiter: '+esc(P[ni].n):'Flug beendet'}</button></div></div>`;
   $('#ckBody').innerHTML=h;
 }
-function pgGo(n){const P=pages();if(n<0||n>=P.length)return;S.g[pkey()]=n;const f=P[n].f;if(f&&REQ[f]){S.phase=f;S.req=null}save();renderCheck();window.scrollTo(0,0)}
+function pgGo(n,keepFunk){
+  const P=pages();if(n<0||n>=P.length)return;S.g[pkey()]=n;S.hintNo=null;
+  if(!keepFunk){const r=pageReq(P[n]);if(r){S.phase=rPh(r);S.req=r}else{const f=P[n].f;if(f&&REQ[f]){S.phase=f;S.req=null}}}
+  save();renderCheck();window.scrollTo(0,0);
+}
 $('#ckBody').addEventListener('click',e=>{
   const t=e.target;let b;
   if(t.closest('#pgNext')){const P=pages(),i=S.g[pkey()]||0;const ni=P.findIndex((x,j)=>j>i&&!x.opt);if(ni>=0)pgGo(ni);return}
   if(t.closest('#pgPrev')){pgGo((S.g[pkey()]||0)-1);return}
   if(t.closest('#gGA')){pgGo(FLOWS.findIndex(p=>p.id==='ga'));return}
+  if(t.closest('#fhGo')){const a=funkAhead();if(a)pgGo(a.j,true);return}
+  if(t.closest('#fhNo')){S.hintNo=funkReq();save();renderCheck();return}
   if(b=t.closest('[data-gfunk]')){const[fp,rq]=b.dataset.gfunk.split('|');S.phase=fp;const i=REQ[fp].findIndex(q=>q.n===rq);S.req=fp+(i<0?0:i);save();tab('funk');return}
   if(b=t.closest('[data-x]')){const k=b.dataset.x;S.x[k]=!S.x[k];save();b.classList.toggle('x',!!S.x[k])}
 });
 $('#ckBody').addEventListener('change',e=>{if(e.target.id==='pgSel')pgGo(+e.target.value)});
 $('#t-set').addEventListener('click',e=>{
-  let b;if(b=e.target.closest('[data-set]')){const k=b.dataset.set;let v=b.dataset.v;if(v==='true')v=true;if(v==='false')v=false;S.set[k]=v;save();renderSet();return}
+  let b;if(b=e.target.closest('[data-set]')){const k=b.dataset.set;let v=b.dataset.v;if(v==='true')v=true;if(v==='false')v=false;S.set[k]=v;save();renderSet();if(k==='wake')wakeSync();return}
   if(e.target.closest('#setUserSave')){S.user=$('#setUser').value.trim();save();e.target.textContent='Gespeichert';return}
   if(e.target.closest('#setNew')){ask('Neuer Flug? Tippe JA','',['JA'],0,v=>{if(v==='JA'){S.f=blank();S.ck={};S.x={};S.g={p:0,c:0,done:{}};S.phase='boden';S.req=null;save();tab('flug')}})}
 });
@@ -1164,6 +1225,7 @@ function quick(q){
 if(S.tab==='karte')S.tab='funk';
 if(!F().dep&&S.tab!=='flug')S.tab='flug';
 renderAll();
+wakeSync();
 pullVatsim();setInterval(pullVatsim,60000);
 if(F().dep){pullMetar();setInterval(pullMetar,600000)}
 }
